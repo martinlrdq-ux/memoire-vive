@@ -9,6 +9,7 @@ import { makePeople } from './quiestce.js';
 import { recallFree } from './common.js';
 
 export const DELAY_MIN = 20;
+const SHOW_MS = 5000; // durée d'affichage de chaque mot et de chaque visage
 
 function nextSeries() {
   const all = shuffle(BILAN_WORDS, rng(S.seed));
@@ -20,14 +21,14 @@ function nextSeries() {
 }
 
 async function partWords(stage, words) {
-  await screen(stage, { icon: '1️⃣', title: '15 mots', text: 'Des mots vont s’afficher un par un. Retiens-en le plus possible, comme tu veux. Tu les écriras juste après, puis une seconde fois dans 20 minutes.', buttons: [{ label: 'Commencer' }] });
+  await screen(stage, { icon: '1️⃣', title: '15 mots', text: 'Des mots vont s’afficher un par un, cinq secondes chacun. Retiens-en le plus possible, comme tu veux. Tu les écriras juste après, puis une seconde fois dans 20 minutes.', buttons: [{ label: 'Commencer' }] });
   const big = h('div', { class: 'big-word' });
   const count = h('div', { class: 'muted center' });
   stage.show(h('div', { class: 'screen center-screen' }, count, big));
   for (let i = 0; i < words.length; i++) {
     count.textContent = `${i + 1} / ${words.length}`;
     big.textContent = words[i];
-    await stage.wait(2000);
+    await stage.wait(SHOW_MS);
     big.textContent = '';
     await stage.wait(300);
   }
@@ -37,10 +38,10 @@ async function partWords(stage, words) {
 
 async function partFaces(stage) {
   const people = makePeople(6);
-  await screen(stage, { icon: '2️⃣', title: '6 visages', text: 'Six personnes se présentent, quatre secondes chacune. Retiens leur prénom.', buttons: [{ label: 'Commencer' }] });
+  await screen(stage, { icon: '2️⃣', title: '6 visages', text: 'Six personnes se présentent, cinq secondes chacune. Retiens leur prénom.', buttons: [{ label: 'Commencer' }] });
   for (const p of people) {
     stage.show(h('div', { class: 'screen center-screen' }, h('div', { class: 'face', html: faceSVG(p.seed, p.female, 160) }), h('div', { class: 'big-word' }, p.name)));
-    await stage.wait(4000);
+    await stage.wait(SHOW_MS);
   }
   let ok = 0;
   for (const p of shuffle(people)) {
