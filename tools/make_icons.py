@@ -1,26 +1,36 @@
-"""Dessine l'icône de l'app (une clé dorée sur fond indigo) aux tailles iOS et PWA."""
+"""Dessine l'icône de Kikory (un hibou brun sur fond ambre) aux tailles iOS et PWA."""
 import pathlib
 from PIL import Image, ImageDraw
 
 OUT = pathlib.Path(__file__).resolve().parent.parent / "icons"
-S = 1024
-img = Image.new("RGB", (S, S))
-d = ImageDraw.Draw(img)
-top, bottom = (74, 58, 200), (36, 28, 104)
-for y in range(S):
-    t = y / S
-    d.line([(0, y), (S, y)], fill=tuple(int(top[i] * (1 - t) + bottom[i] * t) for i in range(3)))
-for x, y, r in [(170, 190, 10), (820, 160, 7), (880, 360, 5), (140, 800, 6), (860, 840, 9), (300, 110, 4)]:
-    d.ellipse([x - r, y - r, x + r, y + r], fill=(255, 236, 170))
-gold, dark = (247, 196, 72), (205, 148, 30)
-cx, cy = 400, 420
-d.ellipse([cx - 190, cy - 190, cx + 190, cy + 190], fill=gold)
-d.ellipse([cx - 80, cy - 80, cx + 80, cy + 80], fill=bottom)
-d.polygon([(cx + 120, cy + 90), (cx + 170, cy + 40), (cx + 480, cy + 350), (cx + 430, cy + 400)], fill=gold)
-for k in (0, 1):
-    bx, by = cx + 330 + k * 90, cy + 250 + k * 90
-    d.polygon([(bx, by), (bx + 40, by - 40), (bx + 130, by + 50), (bx + 90, by + 90)], fill=dark)
-d.ellipse([cx - 150, cy - 160, cx - 70, cy - 80], fill=(255, 226, 140))
+AMBER, BROWN, CREAM, DARK = (239, 159, 39), (133, 79, 11), (250, 238, 218), (65, 36, 2)
+
+
+def owl(scale=1.0, S=4096):
+    """Le hibou dans une grille de 100 unités ; `scale` < 1 le resserre au centre (icône masquable)."""
+    img = Image.new("RGB", (S, S), AMBER)
+    d = ImageDraw.Draw(img)
+    u = S / 100
+    P = lambda x, y: ((50 + (x - 50) * scale) * u, (50 + (y - 50) * scale) * u)
+    R = lambda r: r * scale * u
+
+    def disc(cx, cy, rx, ry, fill):
+        x, y = P(cx, cy)
+        d.ellipse([x - R(rx), y - R(ry), x + R(rx), y + R(ry)], fill=fill)
+
+    d.polygon([P(18, 40), P(26, 14), P(42, 30)], fill=BROWN)
+    d.polygon([P(82, 40), P(74, 14), P(58, 30)], fill=BROWN)
+    disc(50, 56, 34, 31, BROWN)
+    for cx, px in ((37, 38), (63, 62)):
+        disc(cx, 52, 13, 13, CREAM)
+        disc(px, 53, 6, 6, DARK)
+    d.polygon([P(45, 65), P(55, 65), P(50, 74)], fill=AMBER)
+    return img
+
+
+full = owl()
 for size in (180, 192, 512):
-    img.resize((size, size), Image.LANCZOS).save(OUT / f"icon-{size}.png", optimize=True)
+    full.resize((size, size), Image.LANCZOS).save(OUT / f"icon-{size}.png", optimize=True)
+# Android rogne les icônes masquables en cercle : le hibou doit tenir dans la zone sûre centrale.
+owl(0.78).resize((512, 512), Image.LANCZOS).save(OUT / "icon-maskable-512.png", optimize=True)
 print("icônes écrites dans", OUT)

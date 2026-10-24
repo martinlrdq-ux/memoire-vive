@@ -7,7 +7,7 @@ import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FILES = ["./", "index.html", "manifest.webmanifest", "css/app.css",
-         "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"]
+         "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"]
 FILES += sorted(str(p.relative_to(ROOT)) for p in (ROOT / "js").rglob("*.js"))
 
 digest = hashlib.sha1()

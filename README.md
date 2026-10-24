@@ -1,4 +1,4 @@
-# Mémoire vive
+# Kikory
 
 Application web (PWA) d'entraînement de la mémoire, fondée sur la synthèse « Entraîner sa mémoire : ce que dit la science » :
 rappel actif, répétition espacée (FSRS-5), stratégies mnémotechniques, mesure de la rétention à 7 jours.

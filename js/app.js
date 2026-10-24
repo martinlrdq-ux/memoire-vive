@@ -14,6 +14,7 @@ import {
 import { delayedReady } from './games/bilan.js';
 import { editPalace } from './games/palais.js';
 import { LANGUAGES } from './data/vocab.js';
+import { owlSVG } from './core/logo.js';
 
 const app = document.getElementById('app');
 const TABS = [
@@ -499,7 +500,7 @@ function icsFor(time, anchor) {
   const end = new Date(d.getTime() + 15 * 60000);
   const loc = (x) => `${x.getFullYear()}${pad(x.getMonth() + 1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
   const utc = (x) => `${x.getUTCFullYear()}${pad(x.getUTCMonth() + 1)}${pad(x.getUTCDate())}T${pad(x.getUTCHours())}${pad(x.getUTCMinutes())}00Z`;
-  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Memoire vive//FR', 'BEGIN:VEVENT', `UID:${uid()}@memoire-vive`, `DTSTAMP:${utc(new Date())}`,
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kikory//FR', 'BEGIN:VEVENT', `UID:${uid()}@kikory`, `DTSTAMP:${utc(new Date())}`,
     `DTSTART:${loc(d)}`, `DTEND:${loc(end)}`, 'RRULE:FREQ=DAILY', `SUMMARY:🧠 Mission mémoire`, `DESCRIPTION:${anchor} : 15 minutes pour ta mémoire.`,
     'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Mission mémoire', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
 }
@@ -519,7 +520,7 @@ async function shareFile(filename, text, mime) {
 }
 
 async function exportBackup() {
-  const ok = await shareFile(`memoire-vive-${dayKey()}.json`, exportJSON(), 'application/json');
+  const ok = await shareFile(`kikory-${dayKey()}.json`, exportJSON(), 'application/json');
   if (ok) { S.lastBackup = Date.now(); save(); toast('Sauvegarde exportée 💾', 'ok'); render(); }
 }
 
@@ -587,7 +588,8 @@ function openSettings() {
     h('button', { class: 'btn danger', onclick: async () => {
       if (await sheet({ title: 'Tout effacer ?', text: 'Toutes tes données (Coffre, progrès, ville) seront supprimées de cet appareil. Exporte une sauvegarde avant si tu veux les garder.', buttons: [{ label: 'Tout effacer', value: true, kind: 'danger' }, { label: 'Annuler', value: false }] })) { resetAll(); location.reload(); }
     } }, 'Réinitialiser l’application'),
-    h('p', { class: 'muted small center' }, 'Mémoire vive · v1'),
+    h('div', { class: 'center', html: owlSVG(40) }),
+    h('p', { class: 'muted small center' }, 'Kikory · v1'),
   ));
 }
 
@@ -599,7 +601,7 @@ async function onboarding() {
   stage.setProgress(null);
   try {
     await screen(stage, {
-      icon: '🧠', title: 'Mémoire vive',
+      icon: h('span', { html: owlSVG(88) }), title: 'Kikory',
       text: ['Retiens mieux ce qu’on te dit, et ce que tu choisis d’apprendre.', 'L’app s’appuie sur ce que la recherche a démontré : se tester plutôt que relire, espacer les révisions, et apprendre les stratégies des champions de mémoire.'],
       body: h('div', { class: 'promise' }, h('p', null, '✓ Retenir les prénoms, les chiffres, les consignes'), h('p', null, '✓ Mesurer ce que tu retiens vraiment après une semaine'), h('p', { class: 'muted' }, '✗ Pas de « cerveau plus jeune » ni de promesse médicale')),
       buttons: [{ label: 'Commencer' }],
