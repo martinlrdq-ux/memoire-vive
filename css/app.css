@@ -167,10 +167,17 @@ body {
   overscroll-behavior-y: none;
 }
 body.stage-open { overflow: hidden; }
-/* Le ciel reste fixe derrière l'écran ; le contenu défile par-dessus. */
+/* Le ciel reste fixe derrière l'écran : un grand arc bleu sur la moitié haute,
+   le fond de page en dessous ; les cartes défilent par-dessus. */
 body::before {
   content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-top) 16%, var(--sky-bottom) 48%, var(--sky-light) 100%);
+  background: var(--page);
+}
+body::after {
+  content: ''; position: fixed; z-index: -1; pointer-events: none;
+  top: 0; left: -15%; right: -15%; height: 50vh;
+  border-radius: 0 0 50% 50% / 0 0 12vh 12vh;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-top) 30%, var(--sky-bottom) 100%);
 }
 h1, h2, h3, h4 { font-family: var(--font); margin: 0 0 8px; line-height: 1.15; }
 h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
@@ -199,14 +206,9 @@ small { font-size: 13px; }
   margin: 0 auto;
   padding: 0 16px;
 }
-/* Feuille blanche qui monte sur le ciel à partir de la première carte. */
 .sheet-page {
-  position: relative; isolation: isolate; min-height: 70vh;
+  position: relative; min-height: 70vh;
   margin: 0 -16px; padding: 0 16px calc(var(--tabbar-h) + var(--safe-b) + 110px);
-}
-.sheet-page::before {
-  content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: 90px; bottom: 0;
-  background: var(--page); border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 .section-title { margin: 28px 4px 12px; font-size: 22px; }
 

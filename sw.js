@@ -1,5 +1,5 @@
 // Généré par tools/build_sw.py : ne pas modifier à la main.
-const VERSION = '7209d2dbe1';
+const VERSION = '0ea2a983b8';
 const CACHE = `memoire-${VERSION}`;
 const ASSETS = [
   './',
