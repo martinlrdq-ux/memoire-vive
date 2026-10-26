@@ -66,6 +66,7 @@ function defaultState() {
       retention: 0.9,
       reviewCap: 30,
       language: 'en',
+      theme: 'auto', // auto (réglage de l'iPhone), light ou dark
     },
     items: {},
     batches: {},
@@ -116,16 +117,21 @@ export const S = load();
 
 let saveTimer = null;
 let frozen = false; // après un import ou une réinitialisation, plus rien n'écrase le stockage
+const savedHooks = new Set();
+// Appelé après chaque écriture locale (synchronisation du compte en ligne).
+export function onSaved(fn) { savedHooks.add(fn); }
 export function save(now = false) {
   if (frozen) return;
   clearTimeout(saveTimer);
   const write = () => {
     try {
+      S.savedAt = Date.now();
       localStorage.setItem(KEY, JSON.stringify(S));
     } catch (e) {
       console.error('Sauvegarde impossible', e);
       alert("Impossible d'enregistrer : l'espace de stockage est plein. Exporte une sauvegarde depuis les Réglages.");
     }
+    savedHooks.forEach((fn) => fn(now));
   };
   if (now) write();
   else saveTimer = setTimeout(write, 150);

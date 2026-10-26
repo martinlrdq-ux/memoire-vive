@@ -15,6 +15,7 @@ import { delayedReady } from './games/bilan.js';
 import { editPalace } from './games/palais.js';
 import { LANGUAGES } from './data/vocab.js';
 import { owlSVG } from './core/logo.js';
+import { cloudEnabled, session, signup, login, logout, pullIfNewer, push } from './core/cloud.js';
 
 const app = document.getElementById('app');
 // Pictos des onglets : trait fin de 1,6px, couleur héritée de l'onglet.
@@ -33,6 +34,14 @@ const TECH_ORDER = ['story', 'sketch', 'names', 'digits', 'palace', 'oral', 'rea
 let tab = (location.hash.replace('#/', '') || 'home');
 if (!TABS.some(([id]) => id === tab)) tab = 'home';
 
+// Thème choisi dans les Réglages ; « auto » suit le réglage de l'iPhone. Copie hors de S pour l'appliquer avant le premier affichage.
+function applyTheme() {
+  const t = S.profile.theme || 'auto';
+  if (t === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('kikory.theme', t); } catch (e) { /* stockage indisponible */ }
+}
+
 function go(id) {
   tab = id;
   history.replaceState(null, '', `#/${id}`);
@@ -43,8 +52,9 @@ function go(id) {
 export function render() {
   if (!S.profile.onboarded) { app.replaceChildren(); onboarding(); return; }
   const views = { home, coffre: coffreView, jeux: jeuxView, parcours: parcoursView, progres: progresView };
+  const [head, ...rest] = [...views[tab]().children];
   app.replaceChildren(...[
-    h('main', { class: 'view' }, views[tab]()),
+    h('main', { class: 'view' }, head, h('div', { class: 'sheet-page' }, rest)),
     tab !== 'home' && h('button', { class: 'fab', 'aria-label': 'Retenir quelque chose', onclick: openCapture }, '＋'),
     h('nav', { class: 'tabbar' }, TABS.map(([id, label, icon]) => h('button', { class: `tab ${tab === id ? 'on' : ''}`, 'aria-current': tab === id ? 'page' : null, onclick: () => go(id) }, h('span', { class: 'tab-icon', html: icon }), h('span', null, label)))),
   ].filter(Boolean));
@@ -64,9 +74,9 @@ function skyHeader(title, lead) {
 // La semaine autour d'aujourd'hui, en arc : jours de mission faits, jokers, à venir.
 function weekStrip() {
   const today = dayKey();
-  const TILT = [-8, -5, -2, 0, 2, 5, 8], DROP = [22, 9, 2, -6, 2, 9, 22];
+  const TILT = [-16, -12, -8, -4, 0, 4, 8, 12, 16], DROP = [62, 34, 15, 4, -4, 4, 15, 34, 62];
   return h('div', { class: 'week' }, TILT.map((tilt, i) => {
-    const k = i - 3;
+    const k = i - 4;
     const d = addDays(today, k);
     const done = S.streak.done[d], joker = S.streak.jokers[d];
     const state = done ? 'mission faite' : joker ? 'joker utilisé' : k === 0 ? 'mission à faire' : k < 0 ? 'pas de mission' : 'à venir';
@@ -587,7 +597,28 @@ function openSettings() {
   const saveProfile = () => { P.name = fName.value.trim(); P.anchor = fAnchor.value.trim() || 'Après mon café'; P.reminderTime = fTime.value || '08:30'; save(); };
   [fName, fAnchor, fTime].forEach((f) => f.addEventListener('change', saveProfile));
 
+  const themes = [['auto', 'Automatique'], ['light', '☀️ Clair'], ['dark', '🌙 Foncé']];
+  const themeChips = h('div', { class: 'chips' }, themes.map(([v, l]) => h('button', {
+    class: `chip ${(P.theme || 'auto') === v ? 'on' : ''}`, 'aria-pressed': String((P.theme || 'auto') === v),
+    onclick: (e) => {
+      P.theme = v;
+      save();
+      applyTheme();
+      for (const c of themeChips.children) { c.classList.toggle('on', c === e.currentTarget); c.setAttribute('aria-pressed', String(c === e.currentTarget)); }
+    },
+  }, l)));
+
+  const account = session();
   stage.show(h('div', { class: 'screen settings' },
+    account && h('h3', null, 'Compte'),
+    account && h('div', { class: 'check-row account-row' },
+      h('span', { class: 'account-avatar' }, account.pseudo.slice(0, 1).toUpperCase()),
+      h('span', { class: 'item-main' }, h('strong', null, account.pseudo), h('br'), h('small', { class: 'muted' }, 'Données sauvegardées sur ton compte'))),
+    account && h('button', { class: 'btn secondary', onclick: async () => { try { await push(); toast('Données envoyées sur ton compte ✓', 'ok'); } catch (e) { toast(e.message); } } }, 'Synchroniser maintenant'),
+    account && h('button', { class: 'btn ghost', onclick: confirmLogout }, 'Se déconnecter'),
+    h('h3', null, 'Apparence'),
+    themeChips,
+    h('p', { class: 'muted small' }, 'Automatique suit le réglage clair ou sombre de ton iPhone.'),
     h('h3', null, 'Toi'),
     h('label', { class: 'field' }, h('span', null, 'Prénom'), fName),
     h('h3', null, 'Habitude'),
@@ -602,7 +633,7 @@ function openSettings() {
     h('label', { class: 'field' }, h('span', null, 'Plafond de révisions par jour'), select(P.reviewCap, [[15, '15'], [20, '20'], [30, '30 (recommandé)'], [45, '45'], [60, '60']], (v) => { P.reviewCap = Number(v); save(); })),
     h('label', { class: 'field' }, h('span', null, "Langue de « Mots d'ailleurs »"), select(P.language, Object.entries(LANGUAGES).map(([k, l]) => [k, `${l.flag} ${l.name}`]), (v) => { P.language = v; save(); })),
     h('h3', null, 'Sauvegarde'),
-    h('p', { class: 'muted small' }, `Tes données restent sur cet appareil. ${S.lastBackup ? `Dernière sauvegarde : ${fmtDay(dayKey(S.lastBackup), { day: 'numeric', month: 'long' })}.` : 'Aucune sauvegarde pour l’instant.'}`),
+    h('p', { class: 'muted small' }, `${account ? 'Tes données sont aussi copiées sur ton compte.' : 'Tes données restent sur cet appareil.'} ${S.lastBackup ? `Dernière sauvegarde : ${fmtDay(dayKey(S.lastBackup), { day: 'numeric', month: 'long' })}.` : 'Aucune sauvegarde pour l’instant.'}`),
     h('div', { class: 'row wrap' }, h('button', { class: 'btn secondary', onclick: exportBackup }, '💾 Exporter'), h('button', { class: 'btn secondary', onclick: () => fileIn.click() }, '📂 Importer'), fileIn),
     h('h3', null, 'À propos'),
     h('details', { class: 'why' }, h('summary', null, 'Sur quoi repose l’app'),
@@ -659,7 +690,7 @@ async function onboarding() {
     });
     await screen(stage, {
       icon: '📲', title: 'Sur ton iPhone',
-      text: ['Dans Safari, touche Partager puis « Sur l’écran d’accueil » : l’app s’ouvre en plein écran et marche hors ligne.', 'Tes données restent sur ton téléphone. Pense à exporter une sauvegarde de temps en temps (Réglages).'],
+      text: ['Dans Safari, touche Partager puis « Sur l’écran d’accueil » : l’app s’ouvre en plein écran et marche hors ligne.', session() ? 'Tes données sont sauvegardées sur ton compte : tu les retrouves en te connectant sur un autre téléphone.' : 'Tes données restent sur ton téléphone. Pense à exporter une sauvegarde de temps en temps (Réglages).'],
       buttons: [{ label: 'C’est parti !' }],
     });
     S.profile.onboarded = true;
@@ -669,14 +700,86 @@ async function onboarding() {
   render();
 }
 
+// --- Compte ----------------------------------------------------------------------------------
+
+// Écran d'entrée : créer un compte ou se connecter, avec un identifiant et un mot de passe.
+function authView(mode = 'signup') {
+  const signupMode = mode === 'signup';
+  const fPseudo = input({ placeholder: 'martin', autocomplete: 'username', 'aria-label': 'Identifiant', 'data-autofocus': '' });
+  const fPass = h('input', { type: 'password', placeholder: '6 caractères minimum', autocomplete: signupMode ? 'new-password' : 'current-password', 'aria-label': 'Mot de passe' });
+  const err = h('p', { class: 'auth-error', role: 'alert' });
+  const btn = h('button', { class: 'btn primary block', type: 'submit' }, signupMode ? 'Créer mon compte' : 'Me connecter');
+  const submit = async (e) => {
+    e.preventDefault();
+    err.textContent = '';
+    const pseudo = fPseudo.value.trim().toLowerCase(), pass = fPass.value;
+    if (pseudo.length < 3) { err.textContent = 'Choisis un identifiant d’au moins 3 caractères.'; fPseudo.focus(); return; }
+    if (pass.length < 6) { err.textContent = 'Le mot de passe doit faire au moins 6 caractères.'; fPass.focus(); return; }
+    btn.disabled = true;
+    btn.textContent = signupMode ? 'Création…' : 'Connexion…';
+    try {
+      if (signupMode) { await signup(pseudo, pass); start(); return; }
+      if (await login(pseudo, pass)) { location.reload(); return; }
+      start();
+    } catch (ex) {
+      err.textContent = ex.message;
+      btn.disabled = false;
+      btn.textContent = signupMode ? 'Créer mon compte' : 'Me connecter';
+    }
+  };
+  [fPseudo, fPass].forEach((f) => f.addEventListener('input', () => { err.textContent = ''; }));
+  app.replaceChildren(h('main', { class: 'view auth' },
+    h('div', { class: 'auth-head' },
+      h('div', { class: 'auth-owl', html: owlSVG(84) }),
+      h('h1', null, 'Kikory'),
+      h('p', { class: 'lead' }, 'Entraîne ta mémoire avec ce que la science a démontré.')),
+    h('form', { class: 'card auth-card', onsubmit: submit, novalidate: true },
+      h('div', { class: 'chips auth-tabs' },
+        h('button', { type: 'button', class: `chip ${signupMode ? 'on' : ''}`, 'aria-pressed': String(signupMode), onclick: () => authView('signup') }, 'Créer un compte'),
+        h('button', { type: 'button', class: `chip ${signupMode ? '' : 'on'}`, 'aria-pressed': String(!signupMode), onclick: () => authView('login') }, 'J’ai déjà un compte')),
+      h('label', { class: 'field' }, h('span', null, 'Identifiant'), fPseudo),
+      h('label', { class: 'field' }, h('span', null, 'Mot de passe'), fPass),
+      err,
+      btn,
+      h('p', { class: 'muted small center' }, signupMode ? 'Tes données seront sauvegardées sur ton compte : tu les retrouves sur n’importe quel téléphone.' : 'Les données de ton compte remplaceront celles de ce téléphone.'))));
+  setTimeout(() => fPseudo.focus(), 60);
+}
+
+async function confirmLogout() {
+  if (!(await sheet({ title: 'Se déconnecter ?', text: 'Tes données restent sur ton compte. Elles seront effacées de ce téléphone, pour qu’une autre personne puisse s’y connecter.', buttons: [{ label: 'Se déconnecter', value: true, kind: 'danger' }, { label: 'Annuler', value: false }] }))) return;
+  await logout();
+  location.reload();
+}
+
+// À l'ouverture, et au retour dans l'app : reprend les données du compte si elles sont plus récentes ailleurs.
+async function syncFromCloud() {
+  if (!cloudEnabled() || !session()) return;
+  try {
+    if (await pullIfNewer() && !document.body.classList.contains('stage-open')) location.reload();
+  } catch (e) {
+    if (e.code === 'session') { toast(e.message); authView('login'); }
+  }
+}
+
 // --- Démarrage --------------------------------------------------------------------------------
 
-updateStreak();
-checkChapter();
-checkBadges();
+function start() {
+  updateStreak();
+  checkChapter();
+  checkBadges();
+  render();
+}
+
+applyTheme();
 navigator.storage?.persist?.();
-render();
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !document.body.classList.contains('stage-open')) { updateStreak(); render(); } });
+if (cloudEnabled() && !session()) authView();
+else { start(); syncFromCloud(); }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || document.body.classList.contains('stage-open') || (cloudEnabled() && !session())) return;
+  updateStreak();
+  render();
+  syncFromCloud();
+});
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('./sw.js').then((reg) => {
