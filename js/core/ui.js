@@ -129,7 +129,7 @@ export function sheet({ title, text, body, buttons }) {
 
 export function pointsPop(pts) {
   if (!pts) return;
-  const p = h('div', { class: 'points-pop' }, `+${pts}`);
+  const p = h('div', { class: 'points-pop' }, `⚡ +${pts} pts`);
   document.body.append(p);
   setTimeout(() => p.remove(), 1100);
 }

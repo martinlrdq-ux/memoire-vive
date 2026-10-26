@@ -1,11 +1,12 @@
 // Généré par tools/build_sw.py : ne pas modifier à la main.
-const VERSION = '1c7cc941ec';
+const VERSION = 'daea002899';
 const CACHE = `memoire-${VERSION}`;
 const ASSETS = [
   './',
   'index.html',
   'manifest.webmanifest',
   'css/app.css',
+  'fonts/outfit-latin.woff2',
   'icons/icon-180.png',
   'icons/icon-192.png',
   'icons/icon-512.png',

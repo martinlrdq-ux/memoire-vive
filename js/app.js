@@ -17,12 +17,14 @@ import { LANGUAGES } from './data/vocab.js';
 import { owlSVG } from './core/logo.js';
 
 const app = document.getElementById('app');
+// Pictos des onglets : trait fin de 1,6px, couleur héritée de l'onglet.
+const tabIcon = (body) => `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${body}</svg>`;
 const TABS = [
-  ['home', 'Accueil', '🏠'],
-  ['coffre', 'Coffre', '🗝️'],
-  ['jeux', 'Jeux', '🎲'],
-  ['parcours', 'Parcours', '🗺️'],
-  ['progres', 'Progrès', '📈'],
+  ['home', 'Accueil', tabIcon('<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>')],
+  ['coffre', 'Coffre', tabIcon('<path d="M4 10h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 10V8.5A4.5 4.5 0 0 1 8.5 4h7A4.5 4.5 0 0 1 20 8.5V10"/><rect x="10.5" y="12" width="3" height="4" rx="1"/>')],
+  ['jeux', 'Jeux', tabIcon('<rect x="4" y="4" width="16" height="16" rx="3.5"/><g fill="currentColor" stroke="none"><circle cx="8.8" cy="8.8" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="15.2" cy="15.2" r="1.3"/></g>')],
+  ['parcours', 'Parcours', tabIcon('<path d="M6 21V4"/><path d="M6 4h11.5l-2.5 4 2.5 4H6"/>')],
+  ['progres', 'Progrès', tabIcon('<rect x="4.5" y="14" width="4" height="6" rx="1"/><rect x="10" y="9.5" width="4" height="10.5" rx="1"/><rect x="15.5" y="4.5" width="4" height="15.5" rx="1"/>')],
 ];
 const STEP_INFO = { warmup: ['〰️', 'Échauffement'], coffre: ['🗝️', 'Le Coffre'], technique: ['✨', 'Technique'], bilan: ['🌙', 'Bilan du jour'] };
 const SRC_NAMES = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end' };
@@ -44,45 +46,75 @@ export function render() {
   app.replaceChildren(...[
     h('main', { class: 'view' }, views[tab]()),
     tab !== 'home' && h('button', { class: 'fab', 'aria-label': 'Retenir quelque chose', onclick: openCapture }, '＋'),
-    h('nav', { class: 'tabbar' }, TABS.map(([id, label, icon]) => h('button', { class: `tab ${tab === id ? 'on' : ''}`, onclick: () => go(id) }, h('span', { class: 'tab-icon' }, icon), h('span', null, label)))),
+    h('nav', { class: 'tabbar' }, TABS.map(([id, label, icon]) => h('button', { class: `tab ${tab === id ? 'on' : ''}`, 'aria-current': tab === id ? 'page' : null, onclick: () => go(id) }, h('span', { class: 'tab-icon', html: icon }), h('span', null, label)))),
   ].filter(Boolean));
 }
 onRefresh(render);
 
 // --- Accueil ---------------------------------------------------------------------
 
-function statChip(icon, main, sub, onclick) {
-  return h('button', { class: 'stat', onclick }, h('span', { class: 'stat-icon' }, icon), h('span', null, h('strong', null, main), h('small', null, sub)));
+const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const PLAY_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg>';
+
+// En-tête bleu des onglets : titre, et éventuellement un texte d'introduction.
+function skyHeader(title, lead) {
+  return h('header', { class: 'top' }, h('h1', null, title), lead && h('p', { class: 'lead' }, lead));
+}
+
+// La semaine autour d'aujourd'hui, en arc : jours de mission faits, jokers, à venir.
+function weekStrip() {
+  const today = dayKey();
+  const TILT = [-8, -5, -2, 0, 2, 5, 8], DROP = [22, 9, 2, -6, 2, 9, 22];
+  return h('div', { class: 'week' }, TILT.map((tilt, i) => {
+    const k = i - 3;
+    const d = addDays(today, k);
+    const done = S.streak.done[d], joker = S.streak.jokers[d];
+    const state = done ? 'mission faite' : joker ? 'joker utilisé' : k === 0 ? 'mission à faire' : k < 0 ? 'pas de mission' : 'à venir';
+    return h('div', { class: `wday ${k === 0 ? 'today' : ''} ${done ? 'done' : ''}`, style: { transform: `translateY(${DROP[i]}px) rotate(${tilt}deg)` }, 'aria-label': `${fmtDay(d, { weekday: 'long', day: 'numeric' })} : ${state}` },
+      fmtDay(d, { weekday: 'short' }), h('b', null, fmtDay(d, { day: 'numeric' })),
+      h('span', { class: 'wday-dot', html: done ? CHECK_SVG : joker ? '🃏' : k === 0 ? '🔥' : '' }));
+  }));
+}
+
+function streakSheet() {
+  sheet({ title: 'Ta série 🔥', text: `Chaque mission terminée prolonge ta série. Un jour manqué ne casse pas une habitude : tu as 2 jokers par semaine, utilisés automatiquement (encore ${plural(jokersLeft(), 'joker')} cette semaine). Record : ${S.streak.best} jours.`, buttons: [{ label: 'Compris', value: true, kind: 'primary' }] });
 }
 
 function home() {
   const s = sessionToday();
   const steps = sessionSteps(s);
-  const r = rank();
   const q = queue();
   const tech = s.tech || techniqueOfDay();
   const started = steps.some((k) => s.steps[k]);
+  const next = steps.find((k) => !s.steps[k]);
+  const today = pointsToday();
   return h('div', null,
     h('header', { class: 'top' },
-      h('div', null, h('div', { class: 'muted small cap' }, fmtDay(dayKey())), h('h1', null, `Bonjour${S.profile.name ? ' ' + S.profile.name : ''}`)),
-      h('button', { class: 'icon-btn', 'aria-label': 'Réglages', onclick: openSettings }, '⚙️')),
-    h('div', { class: 'stat-row' },
-      statChip('🏅', r.name, `${S.points.total} pts`, () => go('progres')),
-      statChip('🔥', `${streakCount()} j`, `${plural(jokersLeft(), 'joker')}`, () => sheet({ title: 'Ta série', text: `Chaque mission terminée prolonge ta série. Un jour manqué ne casse pas une habitude : tu as 2 jokers par semaine, utilisés automatiquement. Record : ${S.streak.best} jours.` })),
-      statChip('✨', `+${pointsToday()}`, 'aujourd’hui', () => go('progres'))),
+      h('div', { class: 'sky-bar' },
+        h('span', { class: 'sky-owl', html: owlSVG(48) }),
+        h('div', { class: 'sky-pills' },
+          h('button', { class: 'pill flame', 'aria-label': `Série : ${plural(streakCount(), 'jour')}`, onclick: streakSheet }, h('span', { class: 'pill-icon' }, '🔥'), streakCount()),
+          h('button', { class: 'pill xp', 'aria-label': `${S.points.total} points`, onclick: () => go('progres') }, h('span', { class: 'pill-icon' }, '⚡'), S.points.total, h('small', null, 'pts')))),
+      h('div', { class: 'sky-greet' },
+        h('div', null,
+          h('div', { class: 'sky-date cap' }, fmtDay(dayKey()), today ? ` · +${today} pts aujourd’hui` : ''),
+          h('h1', null, `Bonjour${S.profile.name ? ' ' + S.profile.name : ''}`)),
+        h('button', { class: 'icon-btn glass', 'aria-label': 'Réglages', onclick: openSettings }, '⚙️')),
+      weekStrip()),
     installBanner(),
     delayedBanner(),
     backupBanner(),
     checkinCard(),
     h('section', { class: `card mission ${s.done ? 'done' : ''}` },
       h('div', { class: 'card-head' }, h('h2', null, 'Mission du jour'), h('span', { class: 'tag' }, s.kind === 'full' ? '≈ 15 min' : '≈ 5 min')),
-      h('ol', { class: 'mission-steps' }, steps.map((k) => h('li', { class: s.steps[k] ? 'ok' : '' },
+      h('div', { class: `bar mission-bar ${s.done ? 'done' : ''}` }, h('div', { style: { width: `${(steps.filter((k) => s.steps[k]).length / steps.length) * 100}%` } })),
+      h('ol', { class: 'mission-steps' }, steps.map((k) => h('li', { class: s.steps[k] ? 'ok' : k === next ? 'next' : '' },
         h('span', { class: 'step-icon' }, s.steps[k] ? '✓' : STEP_INFO[k][0]),
         h('span', null, STEP_INFO[k][1], k === 'technique' ? h('span', { class: 'muted' }, ` · ${techLabel(tech)}`) : null,
           k === 'coffre' ? h('span', { class: 'muted' }, ` · ${q.items.length ? plural(q.items.length, 'révision') : 'à jour'}`) : null)))),
       s.done
         ? h('p', { class: 'done-line' }, '✓ Mission terminée. À demain !')
-        : h('button', { class: 'btn primary block', onclick: runSession }, started ? 'Continuer' : 'Commencer'),
+        : h('button', { class: 'btn primary block', onclick: runSession, html: `${PLAY_SVG} ${started ? 'Continuer' : 'Commencer'}` }),
       !s.done && h('div', { class: 'row center wrap' },
         s.kind === 'light' && h('button', { class: 'btn ghost small', onclick: () => { s.kind = 'full'; save(); render(); } }, 'Faire une session complète'),
         (s.kind === 'full' || s.extra) && !s.steps.technique && tech !== 'bilan' && h('button', { class: 'btn ghost small', onclick: chooseTechnique }, 'Changer de technique'))),
@@ -242,7 +274,7 @@ function coffreView() {
   for (const i of Object.values(S.items)) bySrc[i.src] = (bySrc[i.src] || 0) + 1;
   const mavie = Object.values(S.items).filter((i) => i.src === 'mavie').sort((a, b) => b.created - a.created);
   return h('div', null,
-    h('header', { class: 'top' }, h('h1', null, 'Le Coffre')),
+    skyHeader('Le Coffre'),
     h('section', { class: 'card' },
       h('div', { class: 'big-number' }, q.items.length, h('small', null, q.items.length > 1 ? ' révisions maintenant' : ' révision maintenant')),
       q.later ? h('p', { class: 'muted' }, `${q.later} de plus plus tard aujourd’hui (Ma vie, ce soir).`) : null,
@@ -306,8 +338,7 @@ function gameInfo(id) {
 function jeuxView() {
   const ch = S.campaign.chapter;
   return h('div', null,
-    h('header', { class: 'top' }, h('h1', null, 'Jeux')),
-    h('p', { class: 'muted lead' }, 'Chaque technique se termine par un rappel, et tout ce que tu apprends revient plus tard dans le Coffre. C’est cette boucle qui produit des résultats durables.'),
+    skyHeader('Jeux', 'Chaque technique se termine par un rappel, et tout ce que tu apprends revient plus tard dans le Coffre. C’est cette boucle qui produit des résultats durables.'),
     h('section', { class: 'card game-card', onclick: () => go('coffre') }, h('span', { class: 'game-icon' }, '🗝️'), h('span', { class: 'game-main' }, h('strong', null, 'Le Coffre'), h('small', { class: 'muted' }, CATALOG.coffre.desc)), h('button', { class: 'icon-btn small', onclick: (e) => { e.stopPropagation(); gameInfo('coffre'); } }, 'ⓘ')),
     h('h2', { class: 'section-title' }, 'Techniques'),
     TECH_ORDER.map((tech) => {
@@ -396,8 +427,7 @@ function skylineSVG(id, stones, wip, color, open) {
 function parcoursView() {
   const ch = S.campaign.chapter;
   return h('div', null,
-    h('header', { class: 'top' }, h('h1', null, 'Parcours')),
-    h('p', { class: 'muted lead' }, 'Un prologue et six chapitres, environ huit semaines. C’est le test de maîtrise qui fait avancer, pas le calendrier : un test raté prolonge simplement le chapitre.'),
+    skyHeader('Parcours', 'Un prologue et six chapitres, environ huit semaines. C’est le test de maîtrise qui fait avancer, pas le calendrier : un test raté prolonge simplement le chapitre.'),
     cityView(),
     CHAPTERS.map((c, i) => {
       const status = i < ch ? 'done' : i === ch ? 'current' : 'locked';
@@ -441,7 +471,7 @@ function progresView() {
   const bs = bilanStatus();
   const lastCheck = S.checkins[S.checkins.length - 1];
   return h('div', null,
-    h('header', { class: 'top' }, h('h1', null, 'Progrès')),
+    skyHeader('Progrès'),
     h('section', { class: 'card' },
       h('div', { class: 'card-head' }, h('h2', null, `🏅 ${r.name}`), h('span', { class: 'tag' }, `${S.points.total} points`)),
       r.next ? h('div', null, h('div', { class: 'bar big' }, h('div', { style: { width: `${r.progress * 100}%` } })), h('p', { class: 'muted small' }, `${r.next.min - S.points.total} points avant ${r.next.name}`)) : h('p', null, 'Rang le plus haut atteint. Bravo !'),
