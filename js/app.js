@@ -1,6 +1,6 @@
 // Interface principale : onglets, accueil, Coffre, jeux, parcours et ville, progrès, réglages.
 import { h, toast, sheet, input, textarea, Stage, screen, ABORT, digitsOf, plural } from './core/ui.js';
-import { S, save, dayKey, dayStart, addDays, fmtDay, uid, exportJSON, importJSON, resetAll, dayDiff, rng } from './core/store.js';
+import { S, save, dayKey, dayStart, addDays, fmtDay, exportJSON, importJSON, resetAll, dayDiff, rng } from './core/store.js';
 import {
   TECHS, CHAPTERS, MAINTENANCE, DISTRICTS, RANKS, BADGES, rank, queue, forecast, levelInfo, sessionToday, techniqueOfDay,
   streakCount, jokersLeft, pointsToday, createItem, deleteItem, chapterProgress, techUnlocked, STAR_COLORS, tapStar,
@@ -16,6 +16,8 @@ import { editPalace } from './games/palais.js';
 import { LANGUAGES } from './data/vocab.js';
 import { owlSVG } from './core/logo.js';
 import { cloudEnabled, session, signup, login, logout, pullIfNewer, push } from './core/cloud.js';
+import { notifStatus, enableNotifs, disableNotifs, testNotif, checkNotifs } from './core/notify.js';
+import './reminders.js';
 
 const app = document.getElementById('app');
 // Pictos des onglets : trait fin de 1,6px, couleur héritée de l'onglet.
@@ -31,6 +33,8 @@ const STEP_INFO = { warmup: ['〰️', 'Échauffement'], coffre: ['🗝️', 'Le
 const SRC_NAMES = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end' };
 const TECH_ORDER = ['story', 'sketch', 'names', 'digits', 'palace', 'oral', 'reading', 'vocab'];
 
+let swReg = null; // service worker (mises à jour)
+let updateReady = false; // une nouvelle version a pris la main : recharger dès que possible
 let tab = (location.hash.replace('#/', '') || 'home');
 if (!TABS.some(([id]) => id === tab)) tab = 'home';
 
@@ -111,7 +115,9 @@ function home() {
           h('h1', null, `Bonjour${S.profile.name ? ' ' + S.profile.name : ''}`)),
         h('button', { class: 'icon-btn glass', 'aria-label': 'Réglages', onclick: openSettings }, '⚙️')),
       weekStrip()),
+    updateBanner(),
     installBanner(),
+    notifBanner(),
     delayedBanner(),
     backupBanner(),
     checkinCard(),
@@ -181,8 +187,20 @@ function installBanner() {
   const standalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
   if (standalone || S.records.installDismissed) return null;
   return h('section', { class: 'card banner' },
-    h('div', null, h('strong', null, '📲 Installe l’app sur ton iPhone'), h('p', { class: 'small muted' }, 'Dans Safari : touche le bouton Partager, puis « Sur l’écran d’accueil ». L’app s’ouvrira en plein écran, même hors ligne.')),
+    h('div', null, h('strong', null, '📲 Installe l’app sur ton iPhone'), h('p', { class: 'small muted' }, 'Dans Safari : touche le bouton Partager, puis « Sur l’écran d’accueil ». L’app s’ouvrira en plein écran, même hors ligne, et pourra t’envoyer tes rappels en notification.')),
     h('button', { class: 'icon-btn', onclick: () => { S.records.installDismissed = true; save(); render(); } }, '✕'));
+}
+
+function notifBanner() {
+  if (notifStatus() !== 'off' || S.records.notifDismissed) return null;
+  const btn = h('button', { class: 'btn primary small', onclick: async () => {
+    btn.disabled = true;
+    try { await enableNotifs(); toast('Notifications activées 🔔', 'ok'); } catch (e) { toast(e.message); }
+    render();
+  } }, 'Activer');
+  return h('section', { class: 'card banner' },
+    h('div', null, h('strong', null, '🔔 Reçois tes rappels'), h('p', { class: 'small muted' }, 'La mission du jour, « Ma vie » à retrouver le soir, le rappel du bilan : en notification, même app fermée.')),
+    h('div', { class: 'row' }, btn, h('button', { class: 'icon-btn', 'aria-label': 'Plus tard', onclick: () => { S.records.notifDismissed = true; save(); render(); } }, '✕')));
 }
 
 function delayedBanner() {
@@ -531,18 +549,32 @@ const signed = (n) => (n > 0 ? `+${n}` : String(n));
 
 // --- Réglages -----------------------------------------------------------------------------
 
-function icsFor(time, anchor) {
-  const pad = (n) => String(n).padStart(2, '0');
-  const [hh, mm] = time.split(':').map(Number);
-  const d = new Date();
-  d.setHours(hh, mm, 0, 0);
-  if (d < new Date()) d.setDate(d.getDate() + 1);
-  const end = new Date(d.getTime() + 15 * 60000);
-  const loc = (x) => `${x.getFullYear()}${pad(x.getMonth() + 1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
-  const utc = (x) => `${x.getUTCFullYear()}${pad(x.getUTCMonth() + 1)}${pad(x.getUTCDate())}T${pad(x.getUTCHours())}${pad(x.getUTCMinutes())}00Z`;
-  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kikory//FR', 'BEGIN:VEVENT', `UID:${uid()}@kikory`, `DTSTAMP:${utc(new Date())}`,
-    `DTSTART:${loc(d)}`, `DTEND:${loc(end)}`, 'RRULE:FREQ=DAILY', `SUMMARY:🧠 Mission mémoire`, `DESCRIPTION:${anchor} : 15 minutes pour ta mémoire.`,
-    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Mission mémoire', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+// Bloc « Notifications » des Réglages ; se redessine après chaque action.
+function notifBlock() {
+  const box = h('div', { class: 'stack' });
+  const run = async (btn, fn, done) => {
+    btn.disabled = true;
+    try { await fn(); if (done) toast(done, 'ok'); } catch (e) { toast(e.message); }
+    draw();
+    render();
+  };
+  const draw = () => {
+    const st = notifStatus();
+    const what = h('p', { class: 'muted small' }, 'Tu reçois : la mission du jour à l’heure choisie, ce que tu as rangé dans « Ma vie » quand vient le moment de le retrouver, et le rappel différé du bilan. La consigne du soir (l’étoile) reste sans notification : t’en souvenir seul, c’est l’exercice.');
+    if (st === 'install') box.replaceChildren(h('p', { class: 'small' }, '📲 Pour recevoir les notifications, installe d’abord l’app : dans Safari, Partager puis « Sur l’écran d’accueil ». Ouvre-la ensuite depuis son icône et reviens ici.'), what);
+    else if (st === 'unsupported') box.replaceChildren(h('p', { class: 'small' }, 'Ce navigateur ne sait pas recevoir de notifications. Sur iPhone, il faut iOS 16.4 ou plus récent, avec l’app installée sur l’écran d’accueil.'));
+    else if (st === 'denied') box.replaceChildren(h('p', { class: 'small' }, '🔕 Les notifications sont bloquées. Réautorise-les dans les Réglages de l’iPhone → Notifications → Kikory.'), what);
+    else if (st === 'off') {
+      const b = h('button', { class: 'btn primary', onclick: () => run(b, enableNotifs, 'Notifications activées 🔔') }, '🔔 Activer les notifications');
+      box.replaceChildren(b, what);
+    } else {
+      const test = h('button', { class: 'btn secondary small', onclick: () => run(test, testNotif, 'Notification d’essai en route : elle arrive d’ici une minute.') }, 'Envoyer un essai');
+      const off = h('button', { class: 'btn ghost small', onclick: () => run(off, disableNotifs, 'Notifications désactivées') }, 'Désactiver');
+      box.replaceChildren(h('p', { class: 'small' }, '🔔 Notifications activées sur cet appareil.'), what, h('div', { class: 'row wrap' }, test, off));
+    }
+  };
+  draw();
+  return box;
 }
 
 async function shareFile(filename, text, mime) {
@@ -625,9 +657,9 @@ function openSettings() {
     h('p', { class: 'muted small' }, 'Accrocher la session à une routine existante marche aussi bien qu’une heure fixe. Il faut en moyenne deux mois pour qu’une habitude devienne automatique.'),
     h('label', { class: 'field' }, h('span', null, 'Je fais ma session…'), fAnchor),
     h('label', { class: 'field' }, h('span', null, 'Heure du rappel'), fTime),
-    h('button', { class: 'btn secondary', onclick: () => { saveProfile(); const ics = icsFor(P.reminderTime, P.anchor); const a = h('a', { href: `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`, download: 'mission-memoire.ics' }); document.body.append(a); a.click(); a.remove(); } }, '📅 Ajouter le rappel quotidien au Calendrier'),
-    h('p', { class: 'muted small' }, 'Une web app ne peut pas envoyer de notification toute seule : un événement quotidien dans le Calendrier (ou un rappel dans l’app Rappels) fait le travail.'),
     h('label', { class: 'field' }, h('span', null, 'Jours de session complète (les autres jours : Coffre seul, 5 min)'), dayBtns),
+    h('h3', null, 'Notifications'),
+    notifBlock(),
     h('h3', null, 'Révisions'),
     h('label', { class: 'field' }, h('span', null, 'Rétention visée'), select(P.retention, [[0.8, '80 % (moins de révisions)'], [0.85, '85 %'], [0.9, '90 % (recommandé)'], [0.95, '95 % (beaucoup de révisions)']], (v) => { P.retention = Number(v); save(); })),
     h('label', { class: 'field' }, h('span', null, 'Plafond de révisions par jour'), select(P.reviewCap, [[15, '15'], [20, '20'], [30, '30 (recommandé)'], [45, '45'], [60, '60']], (v) => { P.reviewCap = Number(v); save(); })),
@@ -651,6 +683,12 @@ function openSettings() {
     } }, 'Réinitialiser l’application'),
     h('div', { class: 'center', html: owlSVG(40) }),
     h('p', { class: 'muted small center' }, 'Kikory · v1'),
+    swReg && h('div', { class: 'row center' }, h('button', { class: 'btn ghost small', onclick: async (e) => {
+      const b = e.currentTarget;
+      b.disabled = true;
+      try { toast(await checkForUpdate() ? 'Nouvelle version trouvée : l’app va redémarrer…' : 'Tu as déjà la dernière version ✓', 'ok'); } catch (err) { toast('Impossible de vérifier : es-tu connecté à internet ?'); }
+      b.disabled = false;
+    } }, 'Rechercher une mise à jour')),
   ));
 }
 
@@ -690,7 +728,7 @@ async function onboarding() {
     });
     await screen(stage, {
       icon: '📲', title: 'Sur ton iPhone',
-      text: ['Dans Safari, touche Partager puis « Sur l’écran d’accueil » : l’app s’ouvre en plein écran et marche hors ligne.', session() ? 'Tes données sont sauvegardées sur ton compte : tu les retrouves en te connectant sur un autre téléphone.' : 'Tes données restent sur ton téléphone. Pense à exporter une sauvegarde de temps en temps (Réglages).'],
+      text: ['Dans Safari, touche Partager puis « Sur l’écran d’accueil » : l’app s’ouvre en plein écran, marche hors ligne et peut t’envoyer tes rappels en notification (à activer depuis l’accueil ou les Réglages).', session() ? 'Tes données sont sauvegardées sur ton compte : tu les retrouves en te connectant sur un autre téléphone.' : 'Tes données restent sur ton téléphone. Pense à exporter une sauvegarde de temps en temps (Réglages).'],
       buttons: [{ label: 'C’est parti !' }],
     });
     S.profile.onboarded = true;
@@ -773,19 +811,45 @@ function start() {
 applyTheme();
 navigator.storage?.persist?.();
 if (cloudEnabled() && !session()) authView();
-else { start(); syncFromCloud(); }
+else { start(); syncFromCloud(); checkNotifs().catch(() => {}); }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || document.body.classList.contains('stage-open') || (cloudEnabled() && !session())) return;
   updateStreak();
   render();
   syncFromCloud();
+  checkNotifs().catch(() => {});
 });
 
+// --- Mises à jour -----------------------------------------------------------------------------
+// L'iPhone reprend l'app sans la recharger : on cherche une nouvelle version à chaque retour dans l'app,
+// et dès qu'elle est installée on recharge, sauf au milieu d'un exercice (une bannière attend alors sur l'accueil).
+
+function updateBanner() {
+  if (!updateReady) return null;
+  return h('section', { class: 'card banner accent' },
+    h('div', null, h('strong', null, '✨ Nouvelle version prête'), h('p', { class: 'small muted' }, 'Touche « Mettre à jour » : l’app redémarre en gardant toutes tes données.')),
+    h('button', { class: 'btn primary small', onclick: () => location.reload() }, 'Mettre à jour'));
+}
+
+// Depuis les Réglages : renvoie true si une nouvelle version est en cours d'installation.
+async function checkForUpdate() {
+  if (!swReg) return false;
+  await swReg.update();
+  return Boolean(swReg.installing || swReg.waiting);
+}
+
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('./sw.js').then((reg) => {
-    reg.addEventListener('updatefound', () => {
-      const w = reg.installing;
-      w?.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) toast('Nouvelle version disponible : relance l’app pour l’utiliser.'); });
-    });
-  }).catch(() => {});
+  const hadController = Boolean(navigator.serviceWorker.controller); // au tout premier lancement, pas de « mise à jour »
+  navigator.serviceWorker.register('./sw.js').then((reg) => { swReg = reg; }).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || updateReady) return;
+    updateReady = true;
+    if (!document.body.classList.contains('stage-open')) location.reload();
+    else toast('Nouvelle version prête : elle s’installera à la fin de l’exercice.');
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (updateReady && !document.body.classList.contains('stage-open')) location.reload();
+    else swReg?.update().catch(() => {});
+  });
 }

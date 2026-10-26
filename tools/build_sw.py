@@ -24,7 +24,8 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {{
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' : jamais de fichier périmé tiré du cache HTTP (GitHub Pages le garde 10 minutes).
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((a) => new Request(a, {{ cache: 'reload' }})))).then(() => self.skipWaiting()));
 }});
 
 self.addEventListener('activate', (e) => {{
@@ -34,6 +35,22 @@ self.addEventListener('activate', (e) => {{
 self.addEventListener('fetch', (e) => {{
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(caches.match(e.request, {{ ignoreSearch: true }}).then((hit) => hit || fetch(e.request)));
+}});
+
+// Rappels envoyés par la fonction kikory-push (Supabase).
+self.addEventListener('push', (e) => {{
+  let n = {{}};
+  try {{ n = e.data ? e.data.json() : {{}}; }} catch (err) {{ n = {{ body: e.data.text() }}; }}
+  e.waitUntil(self.registration.showNotification(n.title || 'Kikory', {{ body: n.body || '', tag: n.tag, icon: 'icons/icon-192.png', data: {{ url: n.url || './' }} }}));
+}});
+
+self.addEventListener('notificationclick', (e) => {{
+  e.notification.close();
+  const url = new URL(e.notification.data?.url || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({{ type: 'window', includeUncontrolled: true }}).then((list) => {{
+    const open = list.find((c) => c.url.startsWith(self.registration.scope));
+    return open ? open.focus() : self.clients.openWindow(url);
+  }}));
 }});
 """, encoding="utf-8")
 print(f"sw.js : {len(FILES)} fichiers, version {version}")

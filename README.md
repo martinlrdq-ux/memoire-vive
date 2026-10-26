@@ -21,3 +21,13 @@ Tester en local : `node tools/serve.mjs . 8642` puis http://127.0.0.1:8642.
 - `js/games/` : le Coffre et les 11 jeux, le bilan
 - `js/data/` : mots, prénoms, textes, vocabulaire, palais, système majeur, scènes, messages
 - `js/session.js` : déroulé de la mission du jour ; `js/app.js` : écrans
+- `js/reminders.js` : les rappels envoyés en notification ; `js/core/notify.js` : abonnement push et envoi du programme
+
+## Notifications (Supabase)
+
+Les rappels arrivent en notification (Web Push, iOS 16.4+ avec l'app sur l'écran d'accueil). L'app envoie son programme
+des 14 prochains jours à Supabase ; pg_cron appelle chaque minute la fonction qui envoie ce qui est échu.
+
+1. SQL Editor : exécuter `tools/supabase-push.sql` (après `tools/supabase.sql`).
+2. Edge Functions : déployer `supabase/functions/kikory-push/index.ts` sous le nom `kikory-push`, avec « Verify JWT » désactivé.
+   La paire de clés VAPID est créée par la fonction à son premier appel et rangée en base : rien à configurer.

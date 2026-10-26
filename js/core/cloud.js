@@ -29,7 +29,7 @@ export class CloudError extends Error {
   }
 }
 
-async function rpc(fn, args, { keepalive = false } = {}) {
+export async function rpc(fn, args, { keepalive = false } = {}) {
   let r;
   try {
     r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
