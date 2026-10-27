@@ -709,3 +709,10 @@ details.why p, details.why ul { margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+.walk h2 { font-size: 22px; }
+.walk .row input { flex: 1; min-width: 0; }
+.walk-list { display: flex; flex-direction: column; gap: 8px; background: var(--row); border: 2px solid var(--line); border-radius: var(--radius-m); padding: 10px 14px; }
+.walk-room { font-weight: 800; color: var(--brand-ink); font-size: 14px; }
+.walk-list ol { margin: 2px 0 0; padding-left: 26px; font-size: 15px; }
+.tip.coach { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; font-size: 15px; }
+.tip.coach p { margin: 0; }

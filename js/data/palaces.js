@@ -36,5 +36,5 @@ export const VIRTUAL_PALACES = [
 // Liste plate des lieux d'un palais (virtuel ou personnel).
 export function lociOf(palace) {
   if (palace.rooms) return palace.rooms.flatMap((r) => r.loci.map((x) => ({ ...x, room: r.name })));
-  return palace.loci.map((l) => ({ e: '📍', l, room: palace.name }));
+  return palace.loci.map((l, i) => ({ e: '📍', l, room: palace.roomOf?.[i] || palace.name }));
 }

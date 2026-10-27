@@ -9,10 +9,10 @@ import {
 import { CATALOG, ANNEXES } from './games/catalog.js';
 import {
   onRefresh, runSession, runCoffreOnly, playGame, runBilanStandalone, runDelayedRecall, runFreeReview, runWeekend,
-  weekendAvailable, startTechnique, sessionSteps, techLabel,
+  weekendAvailable, startTechnique, sessionSteps, techLabel, runPalaceBuilder,
 } from './session.js';
 import { delayedReady } from './games/bilan.js';
-import { editPalace } from './games/palais.js';
+import { editPalace, fillSize } from './games/palais.js';
 import { LANGUAGES } from './data/vocab.js';
 import { owlSVG } from './core/logo.js';
 import { cloudEnabled, session, signup, login, logout, pullIfNewer, push } from './core/cloud.js';
@@ -400,8 +400,12 @@ function jeuxView() {
     }),
     h('h2', { class: 'section-title' }, 'Mes palais'),
     h('section', { class: 'card' },
-      S.palaces.length ? h('ul', { class: 'kv' }, S.palaces.map((p) => h('li', null, h('span', null, `🏠 ${p.name}`), h('span', { class: 'row' }, h('small', { class: 'muted' }, `${p.loci.length} lieux`), h('button', { class: 'btn ghost small', onclick: async () => { await editPalace(p); render(); } }, 'Modifier'))))) : h('p', { class: 'muted small' }, 'Ton logement ou un trajet que tu connais par cœur fait un excellent palais. Les palais virtuels sont aussi là.'),
-      h('button', { class: 'btn secondary', onclick: async () => { await editPalace(); render(); } }, '+ Créer un palais')),
+      S.palaces.length ? h('ul', { class: 'kv' }, S.palaces.map((p) => h('li', null,
+        h('span', null, `${p.icon || '🏠'} ${p.name}`, h('br'), h('small', { class: 'muted' }, `${p.loci.length} lieux`)),
+        h('span', { class: 'row' },
+          h('button', { class: 'btn ghost small', onclick: async () => { await editPalace(p); render(); } }, 'Modifier'),
+          h('button', { class: 'btn secondary small', onclick: () => playGame('palais', { title: 'Le Palais', palace: p, size: fillSize(p) }) }, 'Remplir'))))) : h('p', { class: 'muted small' }, 'Ton logement ou un trajet que tu connais par cœur fait un excellent palais. On le construit ensemble, pas à pas, puis tu peux le remplir tout de suite.'),
+      h('button', { class: 'btn secondary', onclick: runPalaceBuilder }, '+ Construire un palais')),
   );
 }
 

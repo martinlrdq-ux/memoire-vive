@@ -13,7 +13,7 @@ export const CATALOG = {
     desc: 'Dépose chaque élément d’une liste dans un lieu, puis refais la promenade.',
     why: 'La méthode des lieux est la stratégie des champions de mémoire. En 40 jours, des débutants sont passés de 26 à 62 mots retenus, avec des gains encore nets quatre mois plus tard. Poser chaque objet d’un geste à un endroit précis renforce encore le souvenir.',
     hard: 'Au début, inventer une image pour chaque lieu paraît lent et artificiel. Ça devient vite un réflexe, et les images vivantes, absurdes et en mouvement sont celles qui tiennent le mieux.',
-    steps: ['Choisis ton palais : un décor fourni, ton logement ou un trajet connu.', 'Pour chaque élément, imagine une scène vivante avec le lieu, puis touche le lieu pour l’y déposer.', 'Refais la promenade dans ta tête et restitue les éléments dans l’ordre.'],
+    steps: ['Choisis ton palais : un décor fourni, ou ton logement que tu construis pas à pas.', 'Pour chaque élément, suis l’idée du coach (exagère, fais bouger, fais parler, ajoute une odeur), puis touche le lieu pour l’y déposer.', 'Un mot abstrait ? Remplace-le par un mot concret qui sonne pareil : « baromètre » devient un bar.', 'Refais la promenade dans ta tête et restitue les éléments dans l’ordre.'],
   },
   quiestce: {
     name: 'Qui est-ce ?', icon: '🧑', tech: 'names', kind: 'main', memory: 'Associative',

@@ -182,6 +182,24 @@ export function runWeekend() {
   });
 }
 
+// Construction guidée d'un palais, puis un premier remplissage tout de suite (accessible dès le jour 1).
+export function runPalaceBuilder() {
+  return guard(async () => {
+    const stage = new Stage('Ton palais', { onClose: refresh });
+    try {
+      const p = await palais.buildPalace(stage);
+      const now = await screen(stage, {
+        icon: '🏛️', title: 'Ton palais est prêt',
+        text: [`${p.name} : ${p.loci.length} lieux.`, 'Le meilleur moyen de l’ancrer : y déposer tout de suite quelques objets, puis refaire la promenade.'],
+        buttons: [{ label: 'Le remplir maintenant', value: true }, { label: 'Plus tard', value: false }],
+      });
+      if (!now) return;
+      stage.setTitle('Le Palais');
+      await palais.play({ stage, annex: true, palace: p, size: palais.fillSize(p) });
+    } finally { stage.close(); }
+  });
+}
+
 export function startTechnique(tech) {
   const unlocked = techUnlocked(tech);
   return playGame(TECHS[tech].game, { title: TECHS[tech].name, annex: true, locked: !unlocked });
