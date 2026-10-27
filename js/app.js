@@ -51,7 +51,7 @@ function go(id) {
   tab = id;
   history.replaceState(null, '', `#/${id}`);
   render();
-  app.scrollTo(0, 0);
+  window.scrollTo(0, 0);
 }
 
 export function render() {

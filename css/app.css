@@ -155,27 +155,26 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-/* La page elle-même ne défile pas : c'est #app qui défile. Le ciel reste ainsi immobile
-   sans élément en position fixed contre le haut de l'écran, qu'iOS 26 prolongerait
-   sous la barre d'état avec un dégradé par-dessus le contenu. */
-html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+html, body { margin: 0; padding: 0; }
 html { background: var(--sky-top); }
 body {
-  position: relative; /* découpe l'arc du ciel, plus large que l'écran */
   background: transparent;
   color: var(--ink);
   font-family: var(--font);
   font-size: 16px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
 }
-/* Le ciel : un grand arc bleu sur la moitié haute, le fond de page en dessous. */
+body.stage-open { overflow: hidden; }
+/* Le ciel reste fixe derrière l'écran : un grand arc bleu sur la moitié haute,
+   le fond de page en dessous ; les cartes défilent par-dessus. */
 body::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background: var(--page);
 }
 body::after {
-  content: ''; position: absolute; z-index: -1; pointer-events: none;
+  content: ''; position: fixed; z-index: -1; pointer-events: none;
   top: 0; left: -15%; right: -15%; height: 50vh;
   border-radius: 0 0 50% 50% / 0 0 12vh 12vh;
   background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-top) 30%, var(--sky-bottom) 100%);
@@ -201,7 +200,7 @@ small { font-size: 13px; }
 :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
 
 /* --- Mise en page --- */
-#app { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+#app { min-height: 100vh; }
 .view {
   max-width: 560px;
   margin: 0 auto;
