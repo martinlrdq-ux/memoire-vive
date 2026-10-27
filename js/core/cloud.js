@@ -80,14 +80,18 @@ export async function logout() {
 
 let timer = null;
 let inflight = null;
+let widgetSummary = null; // fourni par js/widget.js : résumé lu par le widget Scriptable
+
+export function setWidgetSummary(fn) { widgetSummary = fn; }
 
 export async function push({ keepalive = false } = {}) {
   const s = session();
   if (!s) return;
   clearTimeout(timer);
-  const body = JSON.stringify(S);
+  const data = widgetSummary ? { ...S, widget: widgetSummary() } : S;
+  const body = JSON.stringify(data);
   // Une requête keepalive (fermeture de l'app) est limitée à 64 Ko.
-  const run = () => rpc('kikory_save', { p_token: s.token, p_data: S }, { keepalive: keepalive && body.length < 60000 });
+  const run = () => rpc('kikory_save', { p_token: s.token, p_data: data }, { keepalive: keepalive && body.length < 60000 });
   inflight = (inflight || Promise.resolve()).catch(() => {}).then(run);
   try { await inflight; } catch (e) { if (e.code === 'session') clearSession(); throw e; }
 }

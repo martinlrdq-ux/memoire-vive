@@ -1,5 +1,5 @@
 // Généré par tools/build_sw.py : ne pas modifier à la main.
-const VERSION = '600135eedf';
+const VERSION = 'de46dc3a52';
 const CACHE = `memoire-${VERSION}`;
 const ASSETS = [
   './',
@@ -46,6 +46,7 @@ const ASSETS = [
   'js/games/quiestce.js',
   'js/reminders.js',
   'js/session.js',
+  'js/widget.js',
 ];
 
 self.addEventListener('install', (e) => {

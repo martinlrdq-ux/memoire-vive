@@ -31,3 +31,14 @@ des 14 prochains jours à Supabase ; pg_cron appelle chaque minute la fonction q
 1. SQL Editor : exécuter `tools/supabase-push.sql` (après `tools/supabase.sql`).
 2. Edge Functions : déployer `supabase/functions/kikory-push/index.ts` sous le nom `kikory-push`, avec « Verify JWT » désactivé.
    La paire de clés VAPID est créée par la fonction à son premier appel et rangée en base : rien à configurer.
+
+## Widget d'écran d'accueil (Scriptable)
+
+Une PWA ne peut pas avoir de widget iOS : le widget passe par l'app gratuite Scriptable. À chaque synchronisation, l'app
+joint à ses données un petit résumé (`data.widget` : série, mission du jour, échéances des révisions) ; le widget le lit
+avec un code propre au compte (`tools/supabase-widget.sql`, à coller une fois dans le SQL Editor).
+
+- Réglages → Widget : génère le code et le script à coller dans Scriptable (il télécharge `widget/kikory-widget.js` à
+  chaque rafraîchissement, donc les mises à jour du widget arrivent sans rien recopier).
+- Scènes du hibou : `python3 tools/make_widget_scenes.py` écrit `widget/scenes/*.png`. Si les images changent,
+  augmenter `SCENES_VERSION` dans `widget/kikory-widget.js` pour vider le cache des téléphones.

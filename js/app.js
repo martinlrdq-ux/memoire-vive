@@ -18,6 +18,7 @@ import { owlSVG } from './core/logo.js';
 import { cloudEnabled, session, signup, login, logout, pullIfNewer, push } from './core/cloud.js';
 import { notifStatus, enableNotifs, disableNotifs, testNotif, checkNotifs } from './core/notify.js';
 import './reminders.js';
+import { widgetBlock } from './widget.js';
 
 const app = document.getElementById('app');
 // Pictos des onglets : trait fin de 1,6px, couleur héritée de l'onglet.
@@ -660,6 +661,8 @@ function openSettings() {
     h('label', { class: 'field' }, h('span', null, 'Jours de session complète (les autres jours : Coffre seul, 5 min)'), dayBtns),
     h('h3', null, 'Notifications'),
     notifBlock(),
+    h('h3', null, 'Widget'),
+    widgetBlock(),
     h('h3', null, 'Révisions'),
     h('label', { class: 'field' }, h('span', null, 'Rétention visée'), select(P.retention, [[0.8, '80 % (moins de révisions)'], [0.85, '85 %'], [0.9, '90 % (recommandé)'], [0.95, '95 % (beaucoup de révisions)']], (v) => { P.retention = Number(v); save(); })),
     h('label', { class: 'field' }, h('span', null, 'Plafond de révisions par jour'), select(P.reviewCap, [[15, '15'], [20, '20'], [30, '30 (recommandé)'], [45, '45'], [60, '60']], (v) => { P.reviewCap = Number(v); save(); })),

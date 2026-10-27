@@ -657,6 +657,7 @@ details.why p, details.why ul { margin-top: 8px; }
 
 /* Réglages */
 .settings h3 { margin-top: 16px; }
+.widget-script { font: 11px/1.4 ui-monospace, Menlo, monospace; min-height: 70px; }
 .day-picker { display: flex; gap: 6px; }
 .day { appearance: none; flex: 1; border: 2px solid var(--line); background: var(--row); color: var(--ink); border-radius: var(--radius-pill); padding: 10px 0; font: 700 15px var(--font); cursor: pointer; box-shadow: var(--shadow-row); }
 .day.on { background: var(--brand); color: var(--on-brand); border-color: var(--brand); box-shadow: var(--shadow-brand); }
