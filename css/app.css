@@ -201,6 +201,14 @@ small { font-size: 13px; }
 
 /* --- Mise en page --- */
 #app { min-height: 100vh; }
+/* Bande bleue sous la barre d'état. iOS 26 y peint un fondu de la couleur du ciel par-dessus
+   ce qui défile dessous ; la bande, de la même couleur, cache les cartes avant qu'elles l'atteignent.
+   Elle grandit avec le défilement (--edge, posé par app.js) pour ne pas couper l'en-tête au repos. */
+.edge {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 15; pointer-events: none;
+  height: calc(var(--safe-t) + var(--edge, 0px));
+  background: var(--sky-top);
+}
 .view {
   max-width: 560px;
   margin: 0 auto;

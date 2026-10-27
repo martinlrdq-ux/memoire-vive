@@ -812,6 +812,7 @@ function start() {
 }
 
 applyTheme();
+addEventListener('scroll', () => document.documentElement.style.setProperty('--edge', `${Math.max(0, Math.min(scrollY, 32))}px`), { passive: true });
 navigator.storage?.persist?.();
 if (cloudEnabled() && !session()) authView();
 else { start(); syncFromCloud(); checkNotifs().catch(() => {}); }
