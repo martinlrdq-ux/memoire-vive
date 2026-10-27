@@ -80,7 +80,7 @@ function reviewCard(stage, item) {
 }
 
 function reviewFace(stage, item) {
-  const { seed, female, job } = item.extra;
+  const { seed, female, job, v = 1 } = item.extra;
   return stage.ask((done) => {
     const fName = input({ placeholder: 'Prénom', 'data-autofocus': '', autocapitalize: 'words' });
     const fJob = input({ placeholder: 'Métier (bonus)' });
@@ -100,7 +100,7 @@ function reviewFace(stage, item) {
     };
     onEnter(fJob, validate);
     const btn = h('button', { class: 'btn primary', onclick: validate }, 'Valider');
-    return h('div', { class: 'screen review' }, header(item), h('div', { class: 'face', html: faceSVG(seed, female, 150) }), h('p', { class: 'center' }, 'Qui est-ce ?'), fName, fJob, btn, feedback);
+    return h('div', { class: 'screen review' }, header(item), h('div', { class: 'face', html: faceSVG(seed, female, 150, v) }), h('p', { class: 'center' }, 'Qui est-ce ?'), fName, fJob, btn, feedback);
   });
 }
 

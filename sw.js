@@ -1,5 +1,5 @@
 // Généré par tools/build_sw.py : ne pas modifier à la main.
-const VERSION = 'de46dc3a52';
+const VERSION = 'b5b2269ed3';
 const CACHE = `memoire-${VERSION}`;
 const ASSETS = [
   './',
@@ -15,6 +15,7 @@ const ASSETS = [
   'js/core/cloud.js',
   'js/core/config.js',
   'js/core/engine.js',
+  'js/core/faces-v1.js',
   'js/core/faces.js',
   'js/core/fsrs.js',
   'js/core/logo.js',

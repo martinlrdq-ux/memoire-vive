@@ -1,6 +1,6 @@
 // Prénoms, noms et métiers fictifs pour « Qui est-ce ? », les bilans et « Message reçu ».
 
-export const NAMES_F = `Léa Camille Chloé Manon Inès Jade Zoé Emma Louise Alice Lina Rose Anna Juliette Clara Sarah Élise Margaux Nina Pauline
+export const NAMES_F = `Léa Chloé Manon Inès Jade Zoé Emma Louise Alice Lina Rose Anna Juliette Clara Sarah Élise Margaux Nina Pauline
 Mathilde Agathe Charlotte Diane Fanny Hélène Isabelle Karine Mélanie Océane Rachel Tiphaine Yasmine Amandine Cécile Estelle Gaëlle
 Irène Laetitia Noémie Patricia Sophie Ursule Aurélie Coralie Eva Gisèle Ingrid Lucie Nadia Pascale Sylvie Valérie Yvonne Albane
 Capucine Elsa Garance Iris Lola Ophélie Paloma Salomé Victoire Bérénice Delphine Flavie Héloïse Joséphine Léonie Nora Philippine
@@ -10,7 +10,7 @@ export const NAMES_M = `Hugo Louis Nathan Lucas Gabriel Arthur Jules Raphaël Ad
 Julien Simon Baptiste Clément Étienne Guillaume Jacques Laurent Nicolas Pierre Sébastien Valentin Yanis Benoît Damien Florian Henri
 Jérôme Marc Olivier Rémi Thierry Vincent Bruno Denis Fabien Hervé Joseph Mehdi Oscar Robin Tristan William Xavier Zacharie Basile
 Dorian Félix Hector Joachim Malo Noé Rayan Timothée Aymeric Cyril Edgar Gaspard Igor Kévin Marius Octave Samuel Ulysse Wassim Yohan
-Armand Gérard Lucien Marcel Raoul Sacha Ludovic Matthieu Grégoire Alexis Thibault Corentin Erwan Gaël Loïc`.split(/\s+/);
+Armand Gérard Lucien Marcel Raoul Ludovic Matthieu Grégoire Alexis Thibault Corentin Erwan Gaël Loïc`.split(/\s+/);
 
 export const SURNAMES = `Martin Bernard Dubois Moreau Laurent Lefèvre Roux Fournier Girard Bonnet Dupont Lambert Fontaine Rousseau Vincent
 Muller Chevalier Robin Gauthier Perrin Morel Mercier Blanc Guérin Boyer Garnier Faure André Clément Lemoine Marchand Picard Leroy

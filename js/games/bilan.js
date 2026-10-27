@@ -1,12 +1,12 @@
 // Bilan : mesure séparée des jeux, sur du contenu jamais vu.
 // 15 mots (immédiat puis 20 minutes plus tard), 6 paires nom-visage, empan de chiffres.
-import { h, screen, input, onEnter, listScore, matchAnswer, digitsOf } from '../core/ui.js';
+import { h, screen, input, listScore, matchAnswer, digitsOf } from '../core/ui.js';
 import { S, save, uid, dayKey, shuffle, rng } from '../core/store.js';
 import { BILAN_WORDS } from '../data/words.js';
 import { faceSVG } from '../core/faces.js';
 import { bilanStatus, checkChapter } from '../core/engine.js';
 import { makePeople } from './quiestce.js';
-import { recallFree } from './common.js';
+import { recallFree, askChecked, digitDiff, listResultView } from './common.js';
 
 export const DELAY_MIN = 20;
 const SHOW_MS = 5000; // durée d'affichage de chaque mot et de chaque visage
@@ -33,7 +33,14 @@ async function partWords(stage, words) {
     await stage.wait(300);
   }
   const ans = await recallFree(stage, { title: 'Les mots', subtitle: 'Tous ceux dont tu te souviens, dans n’importe quel ordre.', n: 15 });
-  return listScore(ans, words, false).score;
+  const found = Math.round(listScore(ans, words, false).score * 15);
+  // La liste ne s'affiche qu'après le rappel différé : la revoir maintenant fausserait la mesure.
+  await screen(stage, {
+    icon: found >= 10 ? '🌟' : found >= 6 ? '👍' : '🌱', title: `${found} / 15 mots retrouvés`,
+    text: 'Tu verras lesquels t’ont échappé après le rappel dans 20 minutes : les revoir maintenant fausserait la mesure.',
+    buttons: [{ label: 'Épreuve suivante' }],
+  });
+  return found;
 }
 
 async function partFaces(stage) {
@@ -44,14 +51,20 @@ async function partFaces(stage) {
     await stage.wait(SHOW_MS);
   }
   let ok = 0;
-  for (const p of shuffle(people)) {
-    const ans = await stage.ask((done) => {
-      const f = input({ placeholder: 'Prénom', autocapitalize: 'words', 'data-autofocus': '' });
-      onEnter(f, () => done(f.value));
-      return h('div', { class: 'screen' }, h('div', { class: 'face', html: faceSVG(p.seed, p.female, 150) }), f, h('div', { class: 'screen-actions' }, h('button', { class: 'btn primary', onclick: () => done(f.value) }, 'Valider')));
+  const order = shuffle(people);
+  for (let i = 0; i < order.length; i++) {
+    const p = order[i];
+    const r = await askChecked(stage, {
+      top: [h('div', { class: 'muted center' }, `${i + 1} / ${order.length} · ${ok} trouvé${ok > 1 ? 's' : ''}`), h('div', { class: 'face', html: faceSVG(p.seed, p.female, 150) })],
+      fields: [input({ placeholder: 'Prénom', autocapitalize: 'words' })],
+      check: ([v]) => (matchAnswer(v, p.name)
+        ? { ok: true, title: `✓ C’est bien ${p.name}` }
+        : { ok: false, title: `✗ C’était ${p.name}`, detail: v.trim() ? h('div', { class: 'muted' }, `Tu as écrit « ${v.trim()} »`) : null }),
+      next: i + 1 < order.length ? 'Visage suivant' : 'Voir le résultat',
     });
-    if (matchAnswer(ans, p.name)) ok++;
+    if (r.ok) ok++;
   }
+  await screen(stage, { icon: ok >= 5 ? '🌟' : ok >= 3 ? '👍' : '🌱', title: `${ok} / 6 visages`, buttons: [{ label: 'Épreuve suivante' }] });
   return ok;
 }
 
@@ -64,12 +77,16 @@ async function partSpan(stage) {
     stage.show(h('div', { class: 'screen center-screen' }, h('div', { class: 'muted center' }, `${len} chiffres`), big));
     await stage.wait(500);
     for (const d of digits) { big.textContent = d; await stage.wait(800); big.textContent = ''; await stage.wait(200); }
-    const ans = await stage.ask((done) => {
-      const f = input({ inputmode: 'numeric', placeholder: 'Les chiffres', 'data-autofocus': '' });
-      onEnter(f, () => done(f.value));
-      return h('div', { class: 'screen' }, h('h2', null, 'Retape la suite'), f, h('div', { class: 'screen-actions' }, h('button', { class: 'btn primary', onclick: () => done(f.value) }, 'Valider')));
+    const last = fails === 1;
+    const r = await askChecked(stage, {
+      top: h('h2', null, 'Retape la suite'),
+      fields: [input({ inputmode: 'numeric', placeholder: 'Les chiffres' })],
+      check: ([v]) => (digitsOf(v) === digits
+        ? { ok: true, title: `✓ ${len} chiffres réussis`, detail: h('div', { class: 'fb-answer mono' }, digits) }
+        : { ok: false, title: last ? '✗ Raté, l’épreuve s’arrête là' : '✗ Raté, encore un essai à cette longueur', detail: digitDiff(digits, v) }),
+      next: 'Continuer',
     });
-    if (digitsOf(ans) === digits) { best = len; len++; fails = 0; } else if (++fails >= 2) break;
+    if (r.ok) { best = len; len++; fails = 0; } else if (++fails >= 2) break;
   }
   return best;
 }
@@ -88,7 +105,7 @@ export async function runBilan(stage) {
   const w1 = await partWords(stage, words);
   const faces = await partFaces(stage);
   const span = await partSpan(stage);
-  const b = { id: uid(), day: dayKey(), t: Date.now(), trial: st.trial, kind: st.kind || 'trial', w1: Math.round(w1 * 15), faces, span, words, w2: null, done: true };
+  const b = { id: uid(), day: dayKey(), t: Date.now(), trial: st.trial, kind: st.kind || 'trial', w1, faces, span, words, w2: null, done: true };
   S.bilans.push(b);
   S.bilanPending = { id: b.id, start: Date.now() };
   save();
@@ -106,11 +123,15 @@ export async function runDelayed(stage) {
   const late = Date.now() - p.start > 3 * 3600000;
   await screen(stage, { icon: '⏰', title: 'Rappel différé', text: 'Retrouve les 15 mots du bilan, sans aide.', buttons: [{ label: 'Commencer' }] });
   const ans = await recallFree(stage, { title: 'Les 15 mots', subtitle: 'Ceux du bilan de tout à l’heure.', n: 15 });
-  b.w2 = Math.round(listScore(ans, b.words, false).score * 15);
+  const { res, score } = listScore(ans, b.words, false);
+  b.w2 = Math.round(score * 15);
   b.late = late;
   S.bilanPending = null;
   save();
-  await screen(stage, { icon: '📏', title: `${b.w2} / 15 après 20 minutes`, text: [`Juste après : ${b.w1}/15.`, 'Tes résultats sont dans l’onglet Progrès.'] });
+  await screen(stage, {
+    icon: '📏', title: `${b.w2} / 15 après 20 minutes`, text: [`Juste après : ${b.w1}/15.`, 'Tes résultats sont dans l’onglet Progrès.'],
+    body: listResultView(b.words, res),
+  });
 }
 
 export function delayedReady() {

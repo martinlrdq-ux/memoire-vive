@@ -1,9 +1,9 @@
 // Message reçu : écouter, reformuler, puis retrouver les informations.
-import { h, input, onEnter, matchAnswer, textarea, screen } from '../core/ui.js';
+import { h, input, matchAnswer, textarea, screen } from '../core/ui.js';
 import { makeMessage } from '../data/messages.js';
 import { speak, stopSpeaking, canSpeak, startNoise, stopNoise, voicesFor } from '../core/speech.js';
 import { levelInfo, startBatch, createItem, recordReview, award } from '../core/engine.js';
-import { intro, recallBreak, resultScreen } from './common.js';
+import { intro, recallBreak, resultScreen, askChecked } from './common.js';
 
 export async function play(ctx) {
   const { stage } = ctx;
@@ -53,12 +53,14 @@ export async function play(ctx) {
   for (let i = 0; i < msg.infos.length; i++) {
     const info = msg.infos[i];
     stage.setProgress(i / msg.infos.length);
-    const ans = await stage.ask((done) => {
-      const f = input({ placeholder: 'Ta réponse', 'data-autofocus': '' });
-      onEnter(f, () => done(f.value));
-      return h('div', { class: 'screen' }, h('div', { class: 'tag' }, msg.context), h('h2', null, info.q), f, h('div', { class: 'screen-actions' }, h('button', { class: 'btn primary', onclick: () => done(f.value) }, 'Valider')));
+    const { values: [ans], ok: good } = await askChecked(stage, {
+      top: [h('div', { class: 'tag' }, msg.context), h('h2', null, info.q)],
+      fields: [input({ placeholder: 'Ta réponse' })],
+      check: ([v]) => (matchAnswer(v, info.a)
+        ? { ok: true, title: `✓ ${info.a.split('|')[0]}` }
+        : { ok: false, title: `✗ C’était : ${info.a.split('|')[0]}` }),
+      next: i + 1 < msg.infos.length ? 'Question suivante' : 'Voir le résultat',
     });
-    const good = matchAnswer(ans, info.a);
     if (good) ok++;
     if (!hard) {
       const item = createItem({ type: 'card', src: 'oral', prompt: `${msg.context} : ${info.q.charAt(0).toLowerCase()}${info.q.slice(1)}`, answer: info.a, hint: msg.text, batch });

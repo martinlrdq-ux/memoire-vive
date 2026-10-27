@@ -1,5 +1,5 @@
 // Briques communes aux jeux : présentation de la technique, pause avant rappel, saisie de listes.
-import { h, screen, input, onEnter, matchAnswer } from '../core/ui.js';
+import { h, screen, input, onEnter, matchAnswer, digitsOf } from '../core/ui.js';
 import { S, save } from '../core/store.js';
 import { CATALOG } from './catalog.js';
 
@@ -72,6 +72,41 @@ export function recallFree(stage, { title, subtitle, n }) {
       h('div', { class: 'screen-actions' }, h('button', { class: 'btn primary', onclick: () => { add(); done(got); } }, 'J’ai fini')),
     );
   });
+}
+
+// Une réponse, puis la correction tout de suite sur le même écran, avant de passer à la suite.
+// check(valeurs) renvoie { ok, kind?, title, detail? } ; la promesse rend { values, ...check }.
+export function askChecked(stage, { top, fields, check, next = 'Suivant' }) {
+  return stage.ask((done) => {
+    const feedback = h('div', { class: 'stack' });
+    let locked = false;
+    const validate = () => {
+      if (locked) return;
+      locked = true;
+      const values = fields.map((f) => f.value);
+      const r = check(values);
+      fields.forEach((f) => { f.disabled = true; });
+      btn.remove();
+      const go = h('button', { class: 'btn primary', onclick: () => done({ values, ...r }) }, next);
+      feedback.replaceChildren(
+        h('div', { class: `feedback ${r.kind || (r.ok ? 'ok' : 'ko')}` }, h('div', { class: 'fb-title' }, r.title), r.detail),
+        h('div', { class: 'screen-actions' }, go));
+      go.focus();
+      feedback.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+    fields.forEach((f, i) => onEnter(f, () => (fields[i + 1] ? fields[i + 1].focus() : validate())));
+    fields[0].setAttribute('data-autofocus', '');
+    const btn = h('button', { class: 'btn primary', onclick: validate }, 'Valider');
+    return h('div', { class: 'screen' }, top, fields, h('div', { class: 'screen-actions' }, btn), feedback);
+  });
+}
+
+// Suite de chiffres attendue, les chiffres mal placés en rouge, et ce qui a été tapé.
+export function digitDiff(expected, typed) {
+  const t = digitsOf(typed);
+  return h('div', null,
+    h('div', { class: 'fb-answer mono digit-diff' }, [...expected].map((d, i) => h('span', { class: t[i] === d ? null : 'bad' }, d))),
+    h('div', { class: 'muted' }, `Tu as tapé : ${t || '—'}`));
 }
 
 export function listResultView(expected, res, { cues, answers } = {}) {
