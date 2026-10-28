@@ -126,6 +126,23 @@ export function deleteItem(id) {
   save();
 }
 
+// Réussites et oublis lieu par lieu, pour repérer les endroits d'un palais qui flanchent.
+export function recordLoci(palaceId, cues, res) {
+  if (!palaceId || !cues) return;
+  const st = (S.palaceStats[palaceId] = S.palaceStats[palaceId] || {});
+  cues.forEach((c, i) => {
+    const k = `${c.room}|${c.l}`;
+    const x = (st[k] = st[k] || { ok: 0, ko: 0 });
+    if (res[i]) x.ok++; else x.ko++;
+  });
+  save();
+}
+
+// Chance de se souvenir d'un élément aujourd'hui (null s'il n'a jamais été révisé).
+export function recallChance(item, t = Date.now()) {
+  return item.m?.reps ? retrievability((t - item.m.last) / DAY_MS, item.m.s) : null;
+}
+
 export function startBatch(tech, size, extra = {}) {
   const id = uid();
   const lv = levelInfo(tech);

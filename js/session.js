@@ -208,6 +208,14 @@ export function runPalaceStore(opts) {
   });
 }
 
+// Ce qui est rangé dans un palais, pièce par pièce.
+export function runPalaceView(p) {
+  return guard(async () => {
+    const stage = new Stage('Mon palais', { onClose: refresh, confirmClose: false });
+    try { await palais.showPalace(stage, p); } finally { stage.close(); }
+  });
+}
+
 export function startTechnique(tech) {
   const unlocked = techUnlocked(tech);
   return playGame(TECHS[tech].game, { title: TECHS[tech].name, annex: true, locked: !unlocked });

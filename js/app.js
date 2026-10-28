@@ -9,10 +9,11 @@ import {
 import { CATALOG, ANNEXES } from './games/catalog.js';
 import {
   onRefresh, runSession, runCoffreOnly, playGame, runBilanStandalone, runDelayedRecall, runFreeReview, runWeekend,
-  weekendAvailable, startTechnique, sessionSteps, techLabel, runPalaceBuilder, runPalaceStore,
+  weekendAvailable, startTechnique, sessionSteps, techLabel, runPalaceBuilder, runPalaceStore, runPalaceView,
 } from './session.js';
 import { delayedReady } from './games/bilan.js';
-import { editPalace, fillSize, palaceGuide } from './games/palais.js';
+import { editPalace, fillSize, palaceGuide, storedLists } from './games/palais.js';
+import { VIRTUAL_PALACES } from './data/palaces.js';
 import { LANGUAGES } from './data/vocab.js';
 import { owlSVG } from './core/logo.js';
 import { cloudEnabled, session, signup, login, logout, pullIfNewer, push } from './core/cloud.js';
@@ -361,6 +362,10 @@ function gameInfo(id) {
   sheet({ title: `${g.icon} ${g.name}`, body: h('div', { class: 'intro' }, h('p', { class: 'muted' }, `Mémoire visée : ${g.memory}`), h('h4', null, 'Pourquoi ça marche'), h('p', null, g.why), h('h4', null, 'Pourquoi ça paraît difficile'), h('p', null, g.hard), g.steps && h('ol', null, g.steps.map((s) => h('li', null, s)))) });
 }
 
+// Tes palais, plus les palais fournis qui gardent une liste rangée.
+const palaceRows = () => [...S.palaces, ...VIRTUAL_PALACES.filter((p) => storedLists(p).length)];
+const lociCount = (p) => p.rooms.reduce((a, r) => a + r.loci.length, 0);
+
 function jeuxView() {
   const ch = S.campaign.chapter;
   return h('div', null,
@@ -398,14 +403,20 @@ function jeuxView() {
     h('h2', { class: 'section-title' }, 'Mes palais'),
     h('section', { class: 'card' },
       h('button', { class: 'btn ghost small', onclick: palaceGuide }, 'ⓘ Le palais mental, c’est quoi ? À quoi ça sert ?'),
-      S.palaces.length ? h('ul', { class: 'kv' }, S.palaces.map((p) => h('li', null,
-        h('span', null, `${p.icon || '🏠'} ${p.name}`, h('br'), h('small', { class: 'muted' }, `${p.loci.length} lieux`)),
-        h('span', { class: 'row' },
-          h('button', { class: 'btn ghost small', onclick: async () => { await editPalace(p); render(); } }, 'Modifier'),
-          h('button', { class: 'btn secondary small', onclick: () => playGame('palais', { title: 'Le Palais', palace: p, size: fillSize(p) }) }, 'Remplir'))))) : h('p', { class: 'muted small' }, 'Pas encore de palais. Construis-en un à partir de ton logement : l’app te guide, ça prend 2 minutes.'),
+      palaceRows().length ? h('ul', { class: 'kv' }, palaceRows().map((p) => {
+        const n = storedLists(p).length;
+        const own = S.palaces.includes(p);
+        return h('li', null,
+          h('button', { class: 'palace-row-main', onclick: () => runPalaceView(p) },
+            `${p.icon || '🏠'} ${p.name} ›`, h('br'), h('small', { class: 'muted' }, `${own ? p.loci.length : lociCount(p)} lieux${n ? ` · ${n} liste${n > 1 ? 's' : ''} rangée${n > 1 ? 's' : ''}` : ''}`)),
+          h('span', { class: 'row' },
+            own ? h('button', { class: 'btn ghost small', onclick: async () => { await editPalace(p); render(); } }, 'Modifier') : null,
+            h('button', { class: 'btn secondary small', onclick: () => playGame('palais', { title: 'Le Palais', palace: p, size: fillSize(p) }) }, 'Remplir')));
+      })) : h('p', { class: 'muted small' }, 'Pas encore de palais. Construis-en un à partir de ton logement : l’app te guide, ça prend 2 minutes.'),
       S.palaces.length ? h('ul', { class: 'legend' },
         h('li', null, h('strong', null, 'Remplir'), ' : t’entraîner avec des mots au hasard.'),
-        h('li', null, h('strong', null, 'Ranger une liste'), ' : y mettre ce que tu dois vraiment retenir (courses, points d’une réunion). Le Coffre te le redemande ce soir.')) : null,
+        h('li', null, h('strong', null, 'Ranger une liste'), ' : y mettre ce que tu dois vraiment retenir (courses, points d’une réunion). Le Coffre te le redemande ce soir.'),
+        h('li', null, h('strong', null, 'Touche un palais'), ' pour voir ce qui y est rangé, et vider une pièce quand la liste ne sert plus.')) : null,
       h('div', { class: 'row wrap' },
         h('button', { class: 'btn secondary', onclick: runPalaceBuilder }, '+ Construire un palais'),
         S.palaces.length ? h('button', { class: 'btn secondary', onclick: () => openCapture('liste') }, '🛒 Ranger une liste') : null)),

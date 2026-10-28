@@ -1,7 +1,7 @@
 // Le Coffre : révision en rappel libre, correction immédiate, note honnête.
 import { h, screen, input, onEnter, matchAnswer, digitScore, listScore, pointsPop, esc } from '../core/ui.js';
 import { dayKey, dayDiff } from '../core/store.js';
-import { recordReview } from '../core/engine.js';
+import { recordReview, recordLoci } from '../core/engine.js';
 import { faceSVG } from '../core/faces.js';
 import { speak } from '../core/speech.js';
 import { gradeFor, listResultView } from './common.js';
@@ -139,6 +139,7 @@ function reviewList(stage, item) {
     const btn = h('button', { class: 'btn primary', onclick: () => {
       const answers = fields.map((f) => f.value);
       const { res, score } = listScore(answers, item.answer, ordered);
+      if (ordered) recordLoci(item.extra.palace, cues, res);
       list.remove();
       btn.remove();
       const g = gradeFor(score);

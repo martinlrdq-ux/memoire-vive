@@ -3,7 +3,7 @@ import { h, screen, input, onEnter, textarea, listScore, toast, sheet, norm } fr
 import { S, save, sample, uid, dayKey, fmtDay } from '../core/store.js';
 import { GAME_WORDS } from '../data/words.js';
 import { VIRTUAL_PALACES, lociOf } from '../data/palaces.js';
-import { levelInfo, startBatch, createItem, recordReview, award, eveningDue } from '../core/engine.js';
+import { levelInfo, startBatch, createItem, recordReview, award, eveningDue, recordLoci, recallChance, deleteItem } from '../core/engine.js';
 import { intro, recallBreak, recallOrdered, listResultView, gradeFor, resultScreen } from './common.js';
 
 export function allPalaces() {
@@ -36,7 +36,8 @@ export function guideBody() {
       h('ol', null,
         h('li', null, h('strong', null, 'Construire ton palais'), ' (une seule fois, 2 minutes) : l’app te fait faire le tour de ton logement et tu notes 10 à 20 endroits dans l’ordre.'),
         h('li', null, h('strong', null, 'T’entraîner avec « Remplir »'), ' : l’app pose des mots au hasard dans ton palais. C’est pour prendre le coup de main.'),
-        h('li', null, h('strong', null, 'T’en servir avec « Ranger une liste »'), ' : tu y ranges ce que tu dois vraiment retenir (des courses, les points d’une réunion). Le soir même, l’app te le redemande.'))),
+        h('li', null, h('strong', null, 'T’en servir avec « Ranger une liste »'), ' : tu y ranges ce que tu dois vraiment retenir (des courses, les points d’une réunion). Le soir même, l’app te le redemande.'),
+        h('li', null, h('strong', null, 'Vider la pièce'), ' quand la liste ne sert plus (les courses sont faites) : la place est libre pour la suivante. Touche ton palais dans « Mes palais » pour voir ce qui y est rangé.'))),
     block('💡 Une bonne image',
       h('ul', null,
         h('li', null, 'Énorme, qui bouge, bizarre ou drôle.'),
@@ -253,13 +254,19 @@ async function choosePalace(stage, n, { title = 'Choisis ton palais' } = {}) {
   }
 }
 
-// Lieux utilisés : on fait tourner la pièce de départ pour limiter les interférences.
+// Lieux utilisés pour l'entraînement : on fait tourner la pièce de départ (palais fournis) et on évite
+// les lieux qui gardent une vraie liste, pour ne pas mélanger les images.
 function lociFor(palace, n) {
   const all = lociOf(palace);
-  if (!palace.rooms) return all.slice(0, n);
-  const runs = (S.records.palaceRuns = (S.records.palaceRuns || 0) + 1);
-  const start = ((runs - 1) % palace.rooms.length) * palace.rooms[0].loci.length;
-  return Array.from({ length: n }, (_, i) => all[(start + i) % all.length]);
+  let start = 0;
+  if (palace.rooms) {
+    const runs = (S.records.palaceRuns = (S.records.palaceRuns || 0) + 1);
+    start = ((runs - 1) % palace.rooms.length) * palace.rooms[0].loci.length;
+  }
+  const order = all.map((_, i) => (start + i) % all.length);
+  const used = occupancy(palace);
+  const free = order.filter((i) => !used[i]);
+  return (free.length >= n ? free : order).slice(0, n).map((i) => all[i]);
 }
 
 // --- Dépôt, avec un coach d'images ------------------------------------------------------
@@ -393,6 +400,7 @@ export async function storeInPalace(stage, { title, items, hint = '', cat = 'lis
   }
   const answers = await recallOrdered(stage, { title, subtitle: 'Qu’as-tu rangé ici ?', n, cues: loci });
   const { res, score } = listScore(answers, items, true);
+  recordLoci(palace.id, loci, res);
   createItem({
     type: 'list', src: 'mavie', prompt: title, answer: items, hint: [hint, ...images].filter(Boolean).join(' · '),
     extra: { cat, ordered: true, cues: loci, palace: palace.id, loc, stored: true }, due: eveningDue(),
@@ -402,6 +410,95 @@ export async function storeInPalace(stage, { title, items, hint = '', cat = 'lis
     text: 'Rangé dans le Coffre. Ce soir, je te redemande la promenade, puis elle reviendra juste avant l’oubli.',
     body: listResultView(items, res, { cues: loci, answers }),
   });
+}
+
+// --- Mon palais : ce qui est rangé où, et vider une pièce ------------------------------------
+
+// Les vraies listes rangées dans ce palais (les entraînements « Remplir » n'occupent pas de lieu).
+export function storedLists(p) {
+  return Object.values(S.items).filter((it) => it.extra?.stored && it.extra.palace === p.id);
+}
+
+const STRENGTH = [
+  { min: 0.9, dot: '🟢', label: 'solide' },
+  { min: 0.7, dot: '🟠', label: 'à revoir bientôt' },
+  { min: 0, dot: '🔴', label: 's’efface' },
+];
+function strength(item) {
+  const r = recallChance(item);
+  if (r == null) return { dot: '⚪', label: 'nouveau, revient ce soir' };
+  return STRENGTH.find((x) => r >= x.min);
+}
+
+// Lieux où l'on se trompe au moins une fois sur deux (3 rappels au moins).
+function flaky(p) {
+  const st = S.palaceStats[p.id] || {};
+  return new Set(Object.entries(st).filter(([, x]) => x.ok + x.ko >= 3 && x.ko / (x.ok + x.ko) >= 0.5).map(([k]) => k));
+}
+
+function palaceViewScreen(palace, done) {
+  const all = lociOf(palace);
+  const lists = storedLists(palace);
+  const at = {}; // lieu → { item, k }
+  for (const it of lists) (it.extra.loc || []).forEach((i, k) => { at[i] = { item: it, k }; });
+  const bad = flaky(palace);
+  const badNames = all.filter((l) => bad.has(`${l.room}|${l.l}`)).map((l) => l.l);
+  return h('div', { class: 'screen' },
+    h('div', { class: 'screen-icon' }, palace.icon),
+    h('h2', null, palace.name),
+    h('p', { class: 'muted center' }, `${all.length} lieux · ${lists.length ? `${lists.length} liste${lists.length > 1 ? 's' : ''} rangée${lists.length > 1 ? 's' : ''}` : 'rien de rangé pour l’instant'}`),
+    h('p', { class: 'tip' }, 'Ici, tu vois ce qui est rangé sur chaque endroit, et si le souvenir tient encore. Les réponses sont cachées : essaie d’abord de les retrouver de tête, puis touche une ligne pour vérifier.'),
+    h('p', { class: 'muted small center' }, '🟢 solide · 🟠 à revoir bientôt · 🔴 s’efface · ⚪ nouveau'),
+    roomsOf(palace).map((r) => {
+      const idx = Array.from({ length: r.n }, (_, i) => r.start + i);
+      const busy = [...new Set(idx.map((i) => at[i]?.item).filter(Boolean))];
+      return h('div', { class: 'room-card' },
+        h('div', { class: 'room-head' },
+          h('span', null, h('strong', null, r.name), ' ', h('small', { class: 'muted' }, busy.length ? '· occupée' : '· libre ✨')),
+          busy.length ? h('button', { class: 'btn ghost small', onclick: () => done({ empty: r }) }, 'Vider cette pièce') : null),
+        h('ol', { class: 'locus-rows', start: r.start + 1 }, idx.map((i) => {
+          const l = all[i];
+          const a = at[i];
+          const hint = bad.has(`${l.room}|${l.l}`) ? h('small', { class: 'warn-text' }, ' ⚠️ souvent oublié') : null;
+          if (!a) return h('li', null, h('span', null, l.l, hint), h('small', { class: 'muted' }, ' · libre'));
+          const st = strength(a.item);
+          const ans = h('span', { class: 'answer hidden' }, a.item.answer[a.k]);
+          return h('li', { class: 'busy', onclick: () => ans.classList.toggle('hidden') },
+            h('span', null, l.l, hint, h('br'), ans),
+            h('small', { class: 'muted right' }, `${st.dot} ${a.item.prompt}`));
+        })));
+    }),
+    badNames.length ? h('p', { class: 'tip' }, `⚠️ Ces endroits te font souvent défaut : ${badNames.join(', ')}. Rends-les plus marquants (revois-les en détail, avec un souvenir), ou remplace-les par un endroit plus distinct avec « Modifier ».`) : null,
+    h('div', { class: 'screen-actions' }, h('button', { class: 'btn primary', onclick: () => done('close') }, 'Fermer')),
+  );
+}
+
+async function emptyRoom(stage, palace, room) {
+  const lists = storedLists(palace).filter((it) => (it.extra.loc || []).some((i) => i >= room.start && i < room.start + room.n));
+  const ok = await screen(stage, {
+    icon: '🧽', title: `Vider « ${room.name} » ?`,
+    text: [
+      `Les listes rangées ici vont être retirées du Coffre, en entier : ${lists.map((it) => `« ${it.prompt} »`).join(', ')}.`,
+      'Fais-le quand tu n’en as plus besoin : les courses sont faites, la réunion est passée. La pièce sera libre pour la prochaine liste.',
+    ],
+    buttons: [{ label: 'Vider la pièce', value: true, kind: 'danger' }, { label: 'Annuler', value: false }],
+  });
+  if (!ok) return;
+  await screen(stage, {
+    icon: '🧽', title: 'Efface les images',
+    text: ['Ferme les yeux et refais le tour de la pièce. Sur chaque endroit, passe un coup d’éponge sur l’image : l’endroit redevient comme d’habitude.', 'C’est ce que font les champions de mémoire avant de réutiliser un palais : les vieilles images ne viennent plus brouiller les nouvelles.'],
+    buttons: [{ label: 'C’est fait' }],
+  });
+  for (const it of lists) deleteItem(it.id);
+  toast(`« ${room.name} » est libre ✨`, 'ok');
+}
+
+export async function showPalace(stage, palace) {
+  for (;;) {
+    const a = await stage.ask((done) => palaceViewScreen(palace, done));
+    if (a === 'close') return;
+    if (a.empty) await emptyRoom(stage, palace, a.empty);
+  }
 }
 
 export async function play(ctx) {
@@ -419,6 +516,7 @@ export async function play(ctx) {
   await recallBreak(ctx, 'Refais la promenade et retrouve l’élément déposé sur chaque lieu.');
   const answers = await recallOrdered(stage, { title: palace.name, subtitle: 'Qu’as-tu déposé ici ?', n, cues: loci });
   const { res, score } = listScore(answers, items, true);
+  recordLoci(palace.id, loci, res);
   let pts = 0;
   let extra = null;
   if (ctx.chrono) {

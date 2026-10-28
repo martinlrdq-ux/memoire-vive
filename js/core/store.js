@@ -87,6 +87,7 @@ function defaultState() {
     checkins: [],
     seenIntro: {},
     palaces: [],
+    palaceStats: {}, // palais → « pièce|lieu » → { ok, ko } aux rappels
     records: {},
     lastBackup: null,
     lastPlayed: {},
