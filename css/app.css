@@ -62,6 +62,7 @@
   --gold: var(--warn);
 
   --tabbar-h: 76px;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
   --font: 'Outfit', ui-rounded, -apple-system, 'Segoe UI', sans-serif;
@@ -303,8 +304,8 @@ small { font-size: 13px; }
 .card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
 .card-head h2, .card-head h3 { margin: 0; }
 .card > h2, .card > h3 { margin-bottom: 12px; }
-button.card, section.card[onclick] { cursor: pointer; }
-button.card:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--card-edge); }
+button.card, .card.tap { cursor: pointer; transition: transform 0.08s ease, box-shadow 0.08s ease; }
+button.card:active, .card.tap:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--card-edge); }
 
 .tag {
   display: inline-flex;
@@ -392,13 +393,22 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-mut
 }
 .tab {
   appearance: none; border: 0; background: none; color: var(--ink-muted); cursor: pointer;
+  position: relative; transition: color 0.2s;
   flex: 1; min-width: 0;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   font: 600 12px/14px var(--font); padding: 7px 2px 6px; border-radius: var(--radius-l);
 }
 .tab-icon { width: 28px; height: 28px; display: block; }
 .tab-icon svg { display: block; }
-.tab.on { background: var(--brand-soft); color: var(--brand-ink); }
+.tab.on { color: var(--brand-ink); }
+/* Pastille de l'onglet actif, glissée sous les onglets (--tab : rang de l'onglet, posé par app.js). */
+.tab-pill {
+  position: absolute; top: 7px; bottom: 7px; left: 7px;
+  width: calc((100% - 14px - (var(--tabs) - 1) * 2px) / var(--tabs));
+  border-radius: var(--radius-l); background: var(--brand-soft);
+  transform: translateX(calc(var(--tab, 0) * (100% + 2px)));
+  transition: transform 0.34s var(--ease-out);
+}
 .fab {
   position: fixed; right: 20px; bottom: calc(var(--tabbar-h) + var(--safe-b) + 22px); z-index: 21;
   width: 60px; height: 60px; border-radius: 50%; border: 0;
@@ -437,7 +447,7 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-mut
 }
 .progress-line { display: grid; grid-template-columns: 1fr 100px 40px; gap: 10px; align-items: center; margin: 8px 0; font-weight: 600; }
 .bar { height: 14px; border-radius: var(--radius-pill); background: var(--brand-soft); overflow: hidden; }
-.bar > div { position: relative; height: 100%; min-width: 14px; background: var(--brand); border-radius: inherit; transition: width 0.4s; }
+.bar > div { position: relative; height: 100%; min-width: 14px; background: var(--brand); border-radius: inherit; transition: width 0.6s var(--ease-out); }
 .bar > div::after { content: ''; position: absolute; left: 7px; right: 7px; top: 3px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.4); }
 .bar.done > div { background: var(--success-bright); }
 .bar.big { height: 16px; margin: 6px 0 10px; }
@@ -477,6 +487,7 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-mut
   background: var(--row); border: 2px solid var(--line); border-radius: var(--radius-m);
   box-shadow: var(--shadow-row); padding: 12px 14px; margin-bottom: 12px;
 }
+.card.game-card { transition: transform 0.08s ease, box-shadow 0.08s ease; }
 .card.game-card:active { transform: translateY(2px); box-shadow: none; }
 .sheet-page > .card.game-card:first-child { box-shadow: var(--shadow-card); }
 .game-card.locked { opacity: 0.55; }
@@ -681,7 +692,7 @@ details.why p, details.why ul { margin-top: 8px; }
 /* --- Feuilles, toasts --- */
 .sheet-wrap { position: fixed; inset: 0; z-index: 80; background: rgba(10, 12, 30, 0); display: flex; align-items: flex-end; justify-content: center; transition: background 0.25s; }
 .sheet-wrap.in { background: var(--scrim); }
-.sheet { width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; background: var(--page); border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding: 14px 20px calc(var(--safe-b) + 22px); box-shadow: var(--shadow-float); transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.sheet { width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; background: var(--page); border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding: 14px 20px calc(var(--safe-b) + 22px); box-shadow: var(--shadow-float); transform: translateY(100%); transition: transform 0.28s var(--ease-out); }
 .sheet::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 16px; }
 .sheet > h3 { font-size: 24px; font-weight: 800; }
 .sheet-wrap.in .sheet { transform: none; }
@@ -705,6 +716,27 @@ details.why p, details.why ul { margin-top: 8px; }
   80% { opacity: 1; transform: translate(-50%, -18px) rotate(-4deg) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -40px) rotate(-4deg) scale(1); }
 }
+
+/* --- Mouvements : courts, même courbe partout. Les entrées ne jouent qu'en arrivant sur un onglet (.view.enter) ;
+   --i (rang de la carte) et --j (colonne) décalent chaque élément de quelques millisecondes. --- */
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(5px); } }
+@keyframes fill { from { width: 0; } }
+@keyframes grow-up { from { transform: scaleY(0); } }
+@keyframes bump { 40% { transform: scale(0.82); } 75% { transform: scale(1.1); } }
+@keyframes swell { 45% { transform: scale(1.12); } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.4); } }
+@keyframes check-pop { 0% { transform: scale(0.3); } 60% { transform: scale(1.18); } }
+@keyframes step-in { from { opacity: 0; transform: translateX(18px); } }
+.view.enter .top > * { animation: fade-up 0.3s ease backwards; }
+.view.enter .sheet-page > * { animation: rise 0.38s var(--ease-out) backwards; animation-delay: calc(40ms + var(--i, 0) * 45ms); }
+.view.enter .bar > div { animation: fill 0.8s var(--ease-out) backwards; animation-delay: calc(160ms + var(--i, 0) * 45ms); }
+.view.enter .fc-bar { transform-origin: bottom; animation: grow-up 0.5s var(--ease-out) backwards; animation-delay: calc(160ms + var(--i, 0) * 45ms + var(--j, 0) * 35ms); }
+.tab.bump .tab-icon { animation: bump 0.4s var(--ease-out); }
+.pill.bump { animation: swell 0.5s var(--ease-out); }
+.fab.pop-in { animation: pop-in 0.34s var(--ease-out) 0.1s backwards; }
+.mission-steps li.just .step-icon { animation: check-pop 0.5s var(--ease-out) 0.3s backwards; }
+.stage-body > .step-in { animation: step-in 0.28s var(--ease-out) backwards; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

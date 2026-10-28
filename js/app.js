@@ -48,9 +48,23 @@ function applyTheme() {
   try { localStorage.setItem('kikory.theme', t); } catch (e) { /* stockage indisponible */ }
 }
 
+// Les entrées (cartes qui montent, barres qui se remplissent) ne jouent qu'en arrivant sur un onglet
+// ou à l'ouverture, pas à chaque rafraîchissement de l'écran.
+let entering = true;
+let fromTab = null;
+
+// Barre d'onglets construite une seule fois : la pastille glisse d'un onglet à l'autre au lieu d'être redessinée.
+const tabButtons = TABS.map(([id, label, icon]) => h('button', { class: 'tab', onclick: () => go(id) }, h('span', { class: 'tab-icon', html: icon }), h('span', null, label)));
+const tabbar = h('nav', { class: 'tabbar', style: `--tabs: ${TABS.length}` }, h('span', { class: 'tab-pill', 'aria-hidden': 'true' }), tabButtons);
+
 function go(id) {
+  if (id !== tab) { fromTab = tab; entering = true; }
   tab = id;
   history.replaceState(null, '', `#/${id}`);
+  const b = tabButtons[TABS.findIndex(([t]) => t === id)];
+  b.classList.remove('bump');
+  void b.offsetWidth; // relance l'animation de l'icône
+  b.classList.add('bump');
   render();
   window.scrollTo(0, 0);
 }
@@ -59,13 +73,56 @@ export function render() {
   if (!S.profile.onboarded) { app.replaceChildren(); onboarding(); return; }
   const views = { home, coffre: coffreView, jeux: jeuxView, parcours: parcoursView, progres: progresView };
   const [head, ...rest] = [...views[tab]().children];
-  app.replaceChildren(...[
-    h('main', { class: 'view' }, head, h('div', { class: 'sheet-page' }, rest)),
-    tab !== 'home' && h('button', { class: 'fab', 'aria-label': 'Retenir quelque chose', onclick: openCapture }, '＋'),
-    h('nav', { class: 'tabbar' }, TABS.map(([id, label, icon]) => h('button', { class: `tab ${tab === id ? 'on' : ''}`, 'aria-current': tab === id ? 'page' : null, onclick: () => go(id) }, h('span', { class: 'tab-icon', html: icon }), h('span', null, label)))),
+  rest.forEach((el, i) => el.style.setProperty('--i', Math.min(i, 8)));
+  const on = TABS.findIndex(([id]) => id === tab);
+  tabButtons.forEach((b, i) => { b.classList.toggle('on', i === on); if (i === on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  tabbar.style.setProperty('--tab', on);
+  for (const el of [...app.children]) if (el !== tabbar) el.remove();
+  app.prepend(...[
+    h('main', { class: `view ${entering ? 'enter' : ''}` }, head, h('div', { class: 'sheet-page' }, rest)),
+    tab !== 'home' && h('button', { class: `fab ${entering && (!fromTab || fromTab === 'home') ? 'pop-in' : ''}`, 'aria-label': 'Retenir quelque chose', onclick: openCapture }, '＋'),
   ].filter(Boolean));
+  if (!tabbar.isConnected) app.append(tabbar);
+  entering = false;
 }
 onRefresh(render);
+
+// Valeurs du dernier affichage : renvoie l'ancienne si elle a changé depuis (hors arrivée sur l'onglet), sinon null.
+const shown = new Map();
+function previous(key, value) {
+  const old = shown.get(key);
+  shown.set(key, value);
+  return entering || old === undefined || old === value ? null : old;
+}
+const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const AFTER_STAGE = 300; // laisse la scène d'exercice se refermer avant d'animer ce qui a changé
+
+// Chiffre qui défile de l'ancienne valeur à la nouvelle (série, points), avec un petit gonflement de sa pastille.
+function counter(key, value) {
+  const el = h('span', null, value);
+  const old = previous(key, value);
+  if (old == null || calm()) return el;
+  el.textContent = old;
+  setTimeout(() => {
+    el.parentElement?.classList.add('bump');
+    const t0 = performance.now();
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / 700);
+      el.textContent = Math.round(old + (value - old) * (1 - (1 - k) ** 3));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, AFTER_STAGE);
+  return el;
+}
+
+// Remplissage de barre qui part de sa valeur au dernier affichage (la mission après une étape) au lieu de sauter.
+function growing(key, pct) {
+  const old = previous(key, pct);
+  const fill = h('div', { style: { width: `${old ?? pct}%` } });
+  if (old != null) setTimeout(() => { fill.style.width = `${pct}%`; }, AFTER_STAGE);
+  return fill;
+}
 
 // --- Accueil ---------------------------------------------------------------------
 
@@ -104,13 +161,18 @@ function home() {
   const started = steps.some((k) => s.steps[k]);
   const next = steps.find((k) => !s.steps[k]);
   const today = pointsToday();
+  // Une étape validée depuis le dernier affichage fait apparaître son ✓ avec un rebond.
+  const stepClass = (k) => {
+    const fresh = previous(`step:${k}`, Boolean(s.steps[k])) === false;
+    return s.steps[k] ? `ok ${fresh ? 'just' : ''}` : k === next ? 'next' : '';
+  };
   return h('div', null,
     h('header', { class: 'top' },
       h('div', { class: 'sky-bar' },
         h('span', { class: 'sky-owl', html: owlSVG(48) }),
         h('div', { class: 'sky-pills' },
-          h('button', { class: 'pill flame', 'aria-label': `Série : ${plural(streakCount(), 'jour')}`, onclick: streakSheet }, h('span', { class: 'pill-icon' }, '🔥'), streakCount()),
-          h('button', { class: 'pill xp', 'aria-label': `${S.points.total} points`, onclick: () => go('progres') }, h('span', { class: 'pill-icon' }, '⚡'), S.points.total, h('small', null, 'pts')))),
+          h('button', { class: 'pill flame', 'aria-label': `Série : ${plural(streakCount(), 'jour')}`, onclick: streakSheet }, h('span', { class: 'pill-icon' }, '🔥'), counter('streak', streakCount())),
+          h('button', { class: 'pill xp', 'aria-label': `${S.points.total} points`, onclick: () => go('progres') }, h('span', { class: 'pill-icon' }, '⚡'), counter('points', S.points.total), h('small', null, 'pts')))),
       h('div', { class: 'sky-greet' },
         h('div', null,
           h('div', { class: 'sky-date cap' }, fmtDay(dayKey()), today ? ` · +${today} pts aujourd’hui` : ''),
@@ -125,8 +187,8 @@ function home() {
     checkinCard(),
     h('section', { class: `card mission ${s.done ? 'done' : ''}` },
       h('div', { class: 'card-head' }, h('h2', null, 'Mission du jour'), h('span', { class: 'tag' }, s.kind === 'full' ? '≈ 15 min' : '≈ 5 min')),
-      h('div', { class: `bar mission-bar ${s.done ? 'done' : ''}` }, h('div', { style: { width: `${(steps.filter((k) => s.steps[k]).length / steps.length) * 100}%` } })),
-      h('ol', { class: 'mission-steps' }, steps.map((k) => h('li', { class: s.steps[k] ? 'ok' : k === next ? 'next' : '' },
+      h('div', { class: `bar mission-bar ${s.done ? 'done' : ''}` }, growing('mission', (steps.filter((k) => s.steps[k]).length / steps.length) * 100)),
+      h('ol', { class: 'mission-steps' }, steps.map((k) => h('li', { class: stepClass(k) },
         h('span', { class: 'step-icon' }, s.steps[k] ? '✓' : STEP_INFO[k][0]),
         h('span', null, STEP_INFO[k][1], k === 'technique' ? h('span', { class: 'muted' }, ` · ${techLabel(tech)}`) : null,
           k === 'coffre' ? h('span', { class: 'muted' }, ` · ${q.items.length ? plural(q.items.length, 'révision') : 'à jour'}`) : null)))),
@@ -140,7 +202,7 @@ function home() {
     h('button', { class: 'card capture-card', onclick: openCapture },
       h('span', { class: 'capture-plus' }, '＋'),
       h('span', null, h('strong', null, 'Retenir quelque chose'), h('br'), h('small', { class: 'muted' }, 'Un prénom, un numéro, une consigne : saisis-le en 10 secondes.'))),
-    h('section', { class: 'card', onclick: () => go('coffre') },
+    h('section', { class: 'card tap', onclick: () => go('coffre') },
       h('div', { class: 'card-head' }, h('h3', null, '🗝️ Le Coffre'), h('span', { class: 'muted small' }, `${Object.keys(S.items).length} éléments`)),
       h('p', null, q.items.length ? `${plural(q.items.length, 'révision')} à faire maintenant` : 'Rien à réviser pour l’instant.', q.later ? h('span', { class: 'muted' }, ` · ${q.later} plus tard aujourd’hui`) : null)),
     parcoursMini(),
@@ -161,9 +223,9 @@ function chooseTechnique() {
 
 function parcoursMini() {
   const ch = S.campaign.chapter;
-  if (ch >= MAINTENANCE) return h('section', { class: 'card', onclick: () => go('parcours') }, h('div', { class: 'card-head' }, h('h3', null, '🎓 Entretien'), h('span', { class: 'muted small' }, 'parcours terminé')), h('p', { class: 'muted' }, 'Le Coffre au quotidien et des sessions de rappel espacées.'));
+  if (ch >= MAINTENANCE) return h('section', { class: 'card tap', onclick: () => go('parcours') }, h('div', { class: 'card-head' }, h('h3', null, '🎓 Entretien'), h('span', { class: 'muted small' }, 'parcours terminé')), h('p', { class: 'muted' }, 'Le Coffre au quotidien et des sessions de rappel espacées.'));
   const c = CHAPTERS[ch];
-  return h('section', { class: 'card', onclick: () => go('parcours') },
+  return h('section', { class: 'card tap', onclick: () => go('parcours') },
     h('div', { class: 'card-head' }, h('h3', null, ch === 0 ? '🗺️ Prologue' : `🗺️ Chapitre ${ch}`), h('span', { class: 'muted small' }, c.title)),
     chapterProgress(ch).map((p) => progressLine(p)),
     h('p', { class: 'muted small' }, `Dans la vraie vie : ${c.life}`));
@@ -310,7 +372,7 @@ function coffreView() {
       h('p', { class: 'muted small' }, `Plafond : ${S.profile.reviewCap} révisions par jour · rétention visée : ${Math.round(S.profile.retention * 100)} %`)),
     h('section', { class: 'card' },
       h('h3', null, 'Les 7 prochains jours'),
-      h('div', { class: 'forecast' }, fc.map((x) => h('div', { class: 'fc-col' }, h('div', { class: 'fc-bar', style: { height: `${(x.n / maxF) * 60 + 2}px` } }), h('small', null, x.n), h('small', { class: 'muted' }, fmtDay(x.d, { weekday: 'narrow' })))))),
+      h('div', { class: 'forecast' }, fc.map((x, j) => h('div', { class: 'fc-col' }, h('div', { class: 'fc-bar', style: `height: ${(x.n / maxF) * 60 + 2}px; --j: ${j}` }), h('small', null, x.n), h('small', { class: 'muted' }, fmtDay(x.d, { weekday: 'narrow' })))))),
     h('section', { class: 'card' },
       h('div', { class: 'card-head' }, h('h3', null, '👤 Ma vie'), h('button', { class: 'btn secondary small', onclick: openCapture }, '＋ Ajouter')),
       h('p', { class: 'muted small' }, 'Ce que tu veux vraiment retenir : on entraîne directement la cible réelle. Les réponses restent cachées : on se teste, on ne relit pas.'),
@@ -831,6 +893,7 @@ function start() {
 
 applyTheme();
 addEventListener('scroll', () => document.documentElement.style.setProperty('--edge', `${Math.max(0, Math.min(scrollY, 32))}px`), { passive: true });
+document.addEventListener('touchstart', () => {}, { passive: true }); // sans écouteur tactile, Safari iOS n'applique pas :active
 navigator.storage?.persist?.();
 if (cloudEnabled() && !session()) authView();
 else { start(); syncFromCloud(); checkNotifs().catch(() => {}); }

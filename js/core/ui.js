@@ -53,7 +53,10 @@ export class Stage {
     this.progressEl.style.visibility = p == null ? 'hidden' : 'visible';
     this.progressEl.firstChild.style.width = `${Math.round((p || 0) * 100)}%`;
   }
-  show(node) {
+  // `slide` : le nouvel écran glisse en place (pas le premier, la scène arrive déjà ;
+  // ni les affichages minutés, qui appellent show directement et doivent apparaître d'un coup).
+  show(node, slide = false) {
+    if (slide && this.body.firstChild) node.classList?.add('step-in');
     this.body.replaceChildren(node);
     this.body.scrollTop = 0;
     const af = node.querySelector?.('[data-autofocus]');
@@ -66,7 +69,7 @@ export class Stage {
       const entry = { reject };
       this.pending.add(entry);
       const done = (v) => { this.pending.delete(entry); resolve(v); };
-      this.show(build(done));
+      this.show(build(done), true);
     });
   }
   wait(ms) {
