@@ -119,9 +119,9 @@ export function listResultView(expected, res, { cues, answers } = {}) {
 
 export const gradeFor = (score) => (score >= 0.9 ? 3 : score >= 0.6 ? 2 : 1);
 
-export function resultScreen(stage, { score, pts, body, title }) {
+export function resultScreen(stage, { score, pts, body, title, text }) {
   const pct = Math.round(score * 100);
-  const msg = pct >= 85 ? 'Excellent : demain, on vérifie que ça tient.' : pct >= 60 ? 'Bien joué. Les erreurs corrigées maintenant reviendront plus tôt.' : 'C’est difficile, et c’est normal au début. L’effort compte plus que le score.';
+  const msg = text || (pct >= 85 ? 'Excellent : demain, on vérifie que ça tient.' : pct >= 60 ? 'Bien joué. Les erreurs corrigées maintenant reviendront plus tôt.' : 'C’est difficile, et c’est normal au début. L’effort compte plus que le score.');
   return screen(stage, {
     icon: pct >= 85 ? '🌟' : pct >= 60 ? '👍' : '🌱',
     title: title || `${pct} % retrouvés`,

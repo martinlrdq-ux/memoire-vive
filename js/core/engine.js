@@ -92,6 +92,16 @@ export const pointsToday = () => S.points.byDay[dayKey()] || 0;
 
 // --- Éléments du Coffre ---------------------------------------------------------
 
+// Première révision d'une saisie « Ma vie » : le soir même (ou dans 2 h 30 en fin de journée).
+export function eveningDue() {
+  const t = new Date();
+  const hr = t.getHours();
+  if (hr < 4) return new Date(t.getFullYear(), t.getMonth(), t.getDate(), 8).getTime();
+  if (hr < 15) return new Date(t.getFullYear(), t.getMonth(), t.getDate(), 18).getTime();
+  if (hr < 21) return t.getTime() + 2.5 * 3600000;
+  return dayStart(addDays(dayKey(), 1)) + 4 * 3600000;
+}
+
 /**
  * Crée un élément à réviser.
  * type : card (question → réponse), face, list, code

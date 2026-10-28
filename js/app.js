@@ -4,15 +4,15 @@ import { S, save, dayKey, dayStart, addDays, fmtDay, exportJSON, importJSON, res
 import {
   TECHS, CHAPTERS, MAINTENANCE, DISTRICTS, RANKS, BADGES, rank, queue, forecast, levelInfo, sessionToday, techniqueOfDay,
   streakCount, jokersLeft, pointsToday, createItem, deleteItem, chapterProgress, techUnlocked, STAR_COLORS, tapStar,
-  retention7, retentionByWeek, difficultyInsight, bilanStatus, checkinDue, updateStreak, checkChapter, checkBadges, districtOf,
+  retention7, retentionByWeek, difficultyInsight, bilanStatus, checkinDue, updateStreak, checkChapter, checkBadges, districtOf, eveningDue,
 } from './core/engine.js';
 import { CATALOG, ANNEXES } from './games/catalog.js';
 import {
   onRefresh, runSession, runCoffreOnly, playGame, runBilanStandalone, runDelayedRecall, runFreeReview, runWeekend,
-  weekendAvailable, startTechnique, sessionSteps, techLabel, runPalaceBuilder,
+  weekendAvailable, startTechnique, sessionSteps, techLabel, runPalaceBuilder, runPalaceStore,
 } from './session.js';
 import { delayedReady } from './games/bilan.js';
-import { editPalace, fillSize } from './games/palais.js';
+import { editPalace, fillSize, palaceGuide } from './games/palais.js';
 import { LANGUAGES } from './data/vocab.js';
 import { owlSVG } from './core/logo.js';
 import { cloudEnabled, session, signup, login, logout, pullIfNewer, push } from './core/cloud.js';
@@ -240,22 +240,14 @@ const CATS = [
   { id: 'chiffre', icon: '🔢', label: 'Un numéro', q: 'C’est le numéro de quoi ?', qph: 'Le code du portail de Paul', a: 'Les chiffres', aph: '4721', numeric: true, tip: 'Découpe en blocs de deux et donne un sens à chaque bloc (une date, un âge…).' },
   { id: 'rdv', icon: '📅', label: 'Un rendez-vous', q: 'Avec qui, pour quoi ?', qph: 'Le dentiste', a: 'Quand et où ?', aph: 'jeudi 15 h, 12 rue des Lilas', tip: 'Reformule-le à voix haute (« donc jeudi 15 h… »), puis imagine la scène. Et note-le aussi dans ton agenda : c’est l’aide la plus fiable.' },
   { id: 'consigne', icon: '📝', label: 'Une consigne', q: 'Quelle consigne ?', qph: 'Ce que Claire m’a demandé pour le dossier', a: 'Son contenu', aph: 'envoyer le devis signé avant vendredi', tip: 'Fais-en une courte histoire. Si c’est à faire plus tard, mets aussi un rappel dans ton téléphone.' },
-  { id: 'liste', icon: '🛒', label: 'Une liste', q: 'Quelle liste ?', qph: 'Les courses de samedi', a: 'Les éléments, séparés par des virgules', aph: 'farine, œufs, citrons', list: true, tip: 'Range chaque élément dans ton palais, ou relie-les en une histoire.' },
+  { id: 'liste', icon: '🛒', label: 'Une liste', q: 'Quelle liste ?', qph: 'Les courses de samedi', a: 'Les éléments, séparés par des virgules', aph: 'farine, œufs, citrons', list: true, palace: true, tip: 'Range-la dans ton palais : chaque élément devient une image posée sur un meuble de ton logement. Ou relie les éléments en une petite histoire.' },
+  { id: 'parole', icon: '🎤', label: 'Une prise de parole', q: 'Pour quelle occasion ?', qph: 'La réunion de lundi avec Claire', a: 'Tes points clés, dans l’ordre, en un ou deux mots chacun', aph: 'budget, planning, recrutement', list: true, ordered: true, palace: true, tip: 'Range-la dans ton palais : chaque point devient une image posée sur un meuble. Le jour J, tu refais le tour dans ta tête et tu parles sans notes, comme les orateurs romains.' },
   { id: 'citation', icon: '💬', label: 'Une phrase', q: 'Qui l’a dit, à quel propos ?', qph: 'Le conseil de mon grand-père', a: 'La phrase', aph: '…', tip: 'Relie-la à un souvenir personnel : ce qui te concerne s’ancre mieux.' },
   { id: 'autre', icon: '✳️', label: 'Autre chose', q: 'La question que tu te poseras', qph: 'Le restaurant conseillé par Léo', a: 'La réponse', aph: '…', tip: 'Relie l’information à toi : où l’as-tu entendue, qu’est-ce qu’elle t’évoque ?' },
 ];
 
-function eveningDue() {
-  const t = new Date();
-  const hr = t.getHours();
-  if (hr < 4) return new Date(t.getFullYear(), t.getMonth(), t.getDate(), 8).getTime();
-  if (hr < 15) return new Date(t.getFullYear(), t.getMonth(), t.getDate(), 18).getTime();
-  if (hr < 21) return t.getTime() + 2.5 * 3600000;
-  return dayStart(addDays(dayKey(), 1)) + 4 * 3600000;
-}
-
-export function openCapture() {
-  let cat = CATS[0];
+export function openCapture(catId) {
+  let cat = CATS.find((c) => c.id === catId) || CATS[0];
   const fQ = input({ autocapitalize: 'sentences' });
   const fA = input({ autocapitalize: 'sentences' });
   const fH = input({ placeholder: 'Ton image ou ton astuce (optionnel)', autocapitalize: 'sentences' });
@@ -268,21 +260,26 @@ export function openCapture() {
     fA.inputMode = c.numeric ? 'numeric' : 'text';
     tip.textContent = `💡 ${c.tip}`;
     chips.replaceChildren(...CATS.map((x) => h('button', { class: `chip ${x === c ? 'on' : ''}`, onclick: () => setCat(x) }, `${x.icon} ${x.label}`)));
+    // Une liste peut aller dans le palais : ce bouton devient alors le principal.
+    const pal = document.getElementById('cap-palace'), cof = document.getElementById('cap-coffre');
+    if (pal) { pal.style.display = c.palace ? '' : 'none'; cof.className = `btn ${c.palace ? 'secondary' : 'primary'}`; }
   };
-  setCat(cat);
   setTimeout(() => fQ.focus(), 250);
-  sheet({
+  const done = sheet({
     title: 'Retenir quelque chose',
     body: h('div', { class: 'stack' }, chips, h('label', { class: 'field' }, qLabel, fQ), h('label', { class: 'field' }, aLabel, fA), tip, fH),
-    buttons: [{ label: 'Ranger dans le Coffre', value: true, kind: 'primary' }, { label: 'Annuler', value: false }],
-  }).then((ok) => {
+    buttons: [{ label: '🏛️ Ranger dans mon palais', value: 'palace', kind: 'primary', id: 'cap-palace' }, { label: 'Ranger dans le Coffre', value: true, kind: 'primary', id: 'cap-coffre' }, { label: 'Annuler', value: false }],
+  });
+  setCat(cat);
+  done.then((ok) => {
     if (!ok) return;
     const q = fQ.value.trim(), a = fA.value.trim();
     if (!q || !a) { toast('Il faut une question et une réponse.'); return; }
     const base = { src: 'mavie', hint: fH.value.trim(), extra: { cat: cat.id }, due: eveningDue() };
     if (cat.list) {
       const items = a.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
-      createItem({ ...base, type: 'list', prompt: q, answer: items, extra: { ...base.extra, ordered: false } });
+      if (ok === 'palace') { runPalaceStore({ title: q, items, hint: base.hint, cat: cat.id, talk: cat.id === 'parole' }); return; }
+      createItem({ ...base, type: 'list', prompt: q, answer: items, extra: { ...base.extra, ordered: !!cat.ordered } });
     } else if (cat.numeric && digitsOf(a).length >= 3 && digitsOf(a).length === a.replace(/[\s.-]/g, '').length) {
       createItem({ ...base, type: 'code', prompt: q, answer: digitsOf(a) });
     } else {
@@ -400,12 +397,18 @@ function jeuxView() {
     }),
     h('h2', { class: 'section-title' }, 'Mes palais'),
     h('section', { class: 'card' },
+      h('button', { class: 'btn ghost small', onclick: palaceGuide }, 'ⓘ Le palais mental, c’est quoi ? À quoi ça sert ?'),
       S.palaces.length ? h('ul', { class: 'kv' }, S.palaces.map((p) => h('li', null,
         h('span', null, `${p.icon || '🏠'} ${p.name}`, h('br'), h('small', { class: 'muted' }, `${p.loci.length} lieux`)),
         h('span', { class: 'row' },
           h('button', { class: 'btn ghost small', onclick: async () => { await editPalace(p); render(); } }, 'Modifier'),
-          h('button', { class: 'btn secondary small', onclick: () => playGame('palais', { title: 'Le Palais', palace: p, size: fillSize(p) }) }, 'Remplir'))))) : h('p', { class: 'muted small' }, 'Ton logement ou un trajet que tu connais par cœur fait un excellent palais. On le construit ensemble, pas à pas, puis tu peux le remplir tout de suite.'),
-      h('button', { class: 'btn secondary', onclick: runPalaceBuilder }, '+ Construire un palais')),
+          h('button', { class: 'btn secondary small', onclick: () => playGame('palais', { title: 'Le Palais', palace: p, size: fillSize(p) }) }, 'Remplir'))))) : h('p', { class: 'muted small' }, 'Pas encore de palais. Construis-en un à partir de ton logement : l’app te guide, ça prend 2 minutes.'),
+      S.palaces.length ? h('ul', { class: 'legend' },
+        h('li', null, h('strong', null, 'Remplir'), ' : t’entraîner avec des mots au hasard.'),
+        h('li', null, h('strong', null, 'Ranger une liste'), ' : y mettre ce que tu dois vraiment retenir (courses, points d’une réunion). Le Coffre te le redemande ce soir.')) : null,
+      h('div', { class: 'row wrap' },
+        h('button', { class: 'btn secondary', onclick: runPalaceBuilder }, '+ Construire un palais'),
+        S.palaces.length ? h('button', { class: 'btn secondary', onclick: () => openCapture('liste') }, '🛒 Ranger une liste') : null)),
   );
 }
 
@@ -565,7 +568,7 @@ function notifBlock() {
   };
   const draw = () => {
     const st = notifStatus();
-    const what = h('p', { class: 'muted small' }, 'Tu reçois : la mission du jour à l’heure choisie, ce que tu as rangé dans « Ma vie » quand vient le moment de le retrouver, et le rappel différé du bilan. La consigne du soir (l’étoile) reste sans notification : t’en souvenir seul, c’est l’exercice.');
+    const what = h('p', { class: 'muted small' }, 'Tu reçois : la mission du jour à l’heure choisie, ce que tu as rangé dans « Ma vie » quand vient le moment de le retrouver, le rappel différé du bilan, et un mot le lendemain matin si tu as raté l’étoile du ciel. La consigne elle-même reste sans rappel : t’en souvenir seul, c’est l’exercice.');
     if (st === 'install') box.replaceChildren(h('p', { class: 'small' }, '📲 Pour recevoir les notifications, installe d’abord l’app : dans Safari, Partager puis « Sur l’écran d’accueil ». Ouvre-la ensuite depuis son icône et reviens ici.'), what);
     else if (st === 'unsupported') box.replaceChildren(h('p', { class: 'small' }, 'Ce navigateur ne sait pas recevoir de notifications. Sur iPhone, il faut iOS 16.4 ou plus récent, avec l’app installée sur l’écran d’accueil.'));
     else if (st === 'denied') box.replaceChildren(h('p', { class: 'small' }, '🔕 Les notifications sont bloquées. Réautorise-les dans les Réglages de l’iPhone → Notifications → Kikory.'), what);

@@ -120,7 +120,7 @@ export function sheet({ title, text, body, buttons }) {
         title && h('h3', null, title),
         text && h('p', { class: 'muted' }, text),
         body,
-        h('div', { class: 'sheet-actions' }, (buttons || [{ label: 'OK', value: true }]).map((b) => h('button', { class: `btn ${b.kind || 'secondary'}`, onclick: () => close(b.value) }, b.label))),
+        h('div', { class: 'sheet-actions' }, (buttons || [{ label: 'OK', value: true }]).map((b) => h('button', { class: `btn ${b.kind || 'secondary'}`, id: b.id, onclick: () => close(b.value) }, b.label))),
       ));
     document.body.append(wrap);
     requestAnimationFrame(() => wrap.classList.add('in'));

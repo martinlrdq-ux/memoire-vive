@@ -10,10 +10,10 @@ export const CATALOG = {
   },
   palais: {
     name: 'Le Palais', icon: '🏛️', tech: 'palace', kind: 'main', memory: 'Épisodique, listes',
-    desc: 'Dépose chaque élément d’une liste dans un lieu, puis refais la promenade.',
-    why: 'La méthode des lieux est la stratégie des champions de mémoire. En 40 jours, des débutants sont passés de 26 à 62 mots retenus, avec des gains encore nets quatre mois plus tard. Poser chaque objet d’un geste à un endroit précis renforce encore le souvenir.',
-    hard: 'Au début, inventer une image pour chaque lieu paraît lent et artificiel. Ça devient vite un réflexe, et les images vivantes, absurdes et en mouvement sont celles qui tiennent le mieux.',
-    steps: ['Choisis ton palais : un décor fourni, ou ton logement que tu construis pas à pas.', 'Pour chaque élément, suis l’idée du coach (exagère, fais bouger, fais parler, ajoute une odeur), puis touche le lieu pour l’y déposer.', 'Un mot abstrait ? Remplace-le par un mot concret qui sonne pareil : « baromètre » devient un bar.', 'Refais la promenade dans ta tête et restitue les éléments dans l’ordre.'],
+    desc: 'Range une liste sur les meubles d’un endroit que tu connais par cœur, puis refais le tour dans ta tête.',
+    why: 'Ta mémoire retient mal une liste de mots, mais très bien les images et les lieux. Le palais transforme chaque mot en image posée sur un meuble : pour retrouver la liste, tu refais le tour. C’est la méthode des champions de mémoire : en 40 jours, des débutants sont passés de 26 à 62 mots retenus, et en gardaient encore une bonne partie quatre mois plus tard.',
+    hard: 'Au début, inventer une image pour chaque mot paraît lent et un peu bête. Ça devient vite un réflexe, et ce sont justement les images énormes, absurdes et qui bougent qui tiennent le mieux.',
+    steps: ['Choisis ton palais : ton logement (tu le construis en 2 minutes) ou un décor fourni.', 'Pour chaque mot, imagine une scène énorme, qui bouge, un peu folle, sur l’endroit indiqué. L’encadré 💡 te donne une idée. Puis touche l’endroit.', 'Un mot abstrait ? Change-le en objet : « baromètre » devient un bar.', 'Refais le tour dans ta tête et retrouve le mot posé sur chaque endroit.'],
   },
   quiestce: {
     name: 'Qui est-ce ?', icon: '🧑', tech: 'names', kind: 'main', memory: 'Associative',

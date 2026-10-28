@@ -3,11 +3,60 @@ import { h, screen, input, onEnter, textarea, listScore, toast, sheet, norm } fr
 import { S, save, sample, uid, dayKey, fmtDay } from '../core/store.js';
 import { GAME_WORDS } from '../data/words.js';
 import { VIRTUAL_PALACES, lociOf } from '../data/palaces.js';
-import { levelInfo, startBatch, createItem, recordReview, award } from '../core/engine.js';
+import { levelInfo, startBatch, createItem, recordReview, award, eveningDue } from '../core/engine.js';
 import { intro, recallBreak, recallOrdered, listResultView, gradeFor, resultScreen } from './common.js';
 
 export function allPalaces() {
   return [...VIRTUAL_PALACES, ...S.palaces];
+}
+
+// --- Guide : le palais mental expliqué simplement ------------------------------------------
+
+export function guideBody() {
+  const block = (title, ...kids) => h('div', { class: 'intro-block' }, h('h4', null, title), ...kids);
+  return h('div', { class: 'intro guide' },
+    block('🏛️ C’est quoi ?',
+      h('p', null, 'Un endroit que tu connais par cœur, ton logement par exemple. Ses meubles deviennent des cases de rangement, toujours dans le même ordre : la porte, puis le paillasson, puis le portemanteau…')),
+    block('🧠 Pourquoi ça marche ?',
+      h('p', null, 'Ta mémoire retient mal une liste de mots, mais très bien les images et les lieux. Alors tu transformes chaque chose à retenir en une image un peu folle, posée sur un meuble. Pour la retrouver, tu refais le tour dans ta tête et tu regardes ce qu’il y a sur chaque meuble.')),
+    block('🛒 Un exemple',
+      h('p', null, 'Courses : farine, œufs, piles.'),
+      h('ul', null,
+        h('li', null, 'Un sac de farine explose sur ton paillasson.'),
+        h('li', null, 'Des œufs font éclore des poussins sur le portemanteau.'),
+        h('li', null, 'Des piles font clignoter le miroir comme un sapin.')),
+      h('p', null, 'Au magasin, tu refais le tour : le paillasson… la farine ! Le portemanteau… les œufs !')),
+    block('📍 Quand s’en servir ?',
+      h('ul', null,
+        h('li', null, 'Quand tu ne peux pas noter : au volant, sous la douche, en pleine conversation.'),
+        h('li', null, 'Quand tu dois parler sans notes : une réunion, un oral, un discours.'),
+        h('li', null, 'Quand tu veux savoir quelque chose par cœur.')),
+      h('p', { class: 'muted' }, 'Une liste que tu peux noter sur ton téléphone ? Garde le téléphone, c’est très bien aussi.')),
+    block('🪜 Dans Kikory, 3 étapes',
+      h('ol', null,
+        h('li', null, h('strong', null, 'Construire ton palais'), ' (une seule fois, 2 minutes) : l’app te fait faire le tour de ton logement et tu notes 10 à 20 endroits dans l’ordre.'),
+        h('li', null, h('strong', null, 'T’entraîner avec « Remplir »'), ' : l’app pose des mots au hasard dans ton palais. C’est pour prendre le coup de main.'),
+        h('li', null, h('strong', null, 'T’en servir avec « Ranger une liste »'), ' : tu y ranges ce que tu dois vraiment retenir (des courses, les points d’une réunion). Le soir même, l’app te le redemande.'))),
+    block('💡 Une bonne image',
+      h('ul', null,
+        h('li', null, 'Énorme, qui bouge, bizarre ou drôle.'),
+        h('li', null, 'Avec une odeur, un bruit, une sensation.'),
+        h('li', null, 'Un mot abstrait ? Change-le en objet : « appeler la banque » devient un téléphone en or.'))),
+  );
+}
+
+export function palaceGuide() {
+  S.seenIntro.palaceGuide = true;
+  save();
+  return sheet({ title: 'Le palais mental', body: guideBody(), buttons: [{ label: 'J’ai compris', value: true, kind: 'primary' }] });
+}
+
+// Au premier usage, le guide s'affiche dans l'écran en cours.
+async function guideOnce(stage, label) {
+  if (S.seenIntro.palaceGuide) return;
+  await screen(stage, { title: 'Le palais mental', body: guideBody(), buttons: [{ label }] });
+  S.seenIntro.palaceGuide = true;
+  save();
 }
 
 // Taille d'un remplissage hors campagne : 10 éléments au moins, sans dépasser le nombre de lieux.
@@ -39,11 +88,12 @@ const isBland = (s) => {
 };
 
 export async function buildPalace(stage) {
+  await guideOnce(stage, 'J’ai compris, on construit');
   const kindId = await stage.ask((done) => h('div', { class: 'screen' },
     h('div', { class: 'screen-icon' }, '🏛️'),
     h('h2', null, 'Construis ton palais'),
-    h('p', null, 'Un palais, c’est un trajet que tu connais par cœur. Ses endroits deviennent des crochets, toujours dans le même ordre, où tu accrocheras ce que tu veux retenir.'),
-    h('p', { class: 'muted' }, 'Quel lieu choisis-tu ?'),
+    h('p', null, 'Tu vas faire le tour d’un endroit dans ta tête et noter, dans l’ordre, ce que tu croises : la porte, le paillasson, le portemanteau… Ce seront tes cases de rangement.'),
+    h('p', { class: 'muted' }, 'Quel endroit connais-tu le mieux ?'),
     h('div', { class: 'palace-list' }, Object.entries(KINDS).map(([id, k]) => h('button', { class: 'palace-card', onclick: () => done(id) },
       h('span', { class: 'palace-icon' }, k.icon), h('strong', null, k.label)))),
   ));
@@ -184,10 +234,10 @@ export async function editPalace(existing) {
   return p;
 }
 
-async function choosePalace(stage, n) {
+async function choosePalace(stage, n, { title = 'Choisis ton palais' } = {}) {
   for (;;) {
     const choice = await stage.ask((done) => h('div', { class: 'screen' },
-      h('h2', null, 'Choisis ton palais'),
+      h('h2', null, title),
       h('p', { class: 'muted' }, `Il faut au moins ${n} lieux.`),
       h('div', { class: 'palace-list' }, allPalaces().map((p) => {
         const count = lociOf(p).length;
@@ -226,7 +276,11 @@ const COACH = [
   'Un seul détail frappant suffit : sa couleur, son bruit, son éclat.',
 ];
 
-function placeItems(stage, items, loci, { chrono }) {
+// Pour une vraie liste : d'abord rendre concret ce qui ne l'est pas ; pour une prise de parole, une scène par idée.
+const CONCRETE = 'C’est abstrait ? Remplace-le par un objet, ou un mot qui sonne pareil : « appeler la banque » devient un téléphone en lingot d’or.';
+const TALK = 'Une seule scène pour toute l’idée : résume ce point en une image, puis pose-la sur le lieu.';
+
+function placeItems(stage, items, loci, { chrono, real, talk } = {}) {
   return stage.ask((done) => {
     let k = 0;
     let tip = Math.floor(Math.random() * COACH.length);
@@ -248,16 +302,17 @@ function placeItems(stage, items, loci, { chrono }) {
       };
       if (f) onEnter(f, () => f.blur());
       tip = (tip + 1) % COACH.length;
-      const tipText = h('span', null, chrono ? COACH[COACH.length - 1] : COACH[tip]);
+      const first = talk ? TALK : real && /\s/.test(items[k]) ? CONCRETE : null;
+      const tipText = h('span', null, chrono ? COACH[COACH.length - 1] : first || COACH[tip]);
       const other = () => { tip = (tip + 1) % COACH.length; tipText.textContent = COACH[tip]; };
       wrap.replaceChildren(
         h('div', { class: 'palace-top' },
           h('div', { class: 'muted' }, `${k + 1} / ${items.length} · ${roomName}`),
-          h('div', { class: 'carry' }, h('span', { class: 'muted' }, 'À déposer : '), h('strong', null, items[k])),
+          h('div', { class: `carry ${items[k].length > 24 ? 'long' : ''}` }, h('span', { class: 'muted' }, talk ? 'Idée à déposer : ' : 'À déposer : '), h('strong', null, items[k])),
           h('div', { class: 'muted' }, `sur « ${target.l} »`),
           h('div', { class: 'tip coach' }, h('p', null, '💡 ', tipText), chrono ? null : h('button', { class: 'btn ghost small', onclick: other }, 'Autre idée')),
           f,
-          h('div', { class: 'muted small' }, 'Quand tu vois la scène, touche le lieu qui brille.')),
+          h('div', { class: 'muted small' }, 'Imagine la scène quelques secondes, puis touche l’endroit qui brille.')),
         h('div', { class: 'room-grid' }, roomLoci.map((l) => h('button', {
           class: `locus ${l.i < k ? 'done' : ''} ${l.i === k ? 'target' : ''}`, 'data-i': l.i, disabled: l.i !== k,
           onclick: place,
@@ -266,6 +321,86 @@ function placeItems(stage, items, loci, { chrono }) {
     };
     render();
     return wrap;
+  });
+}
+
+// --- Ranger une vraie liste ou une prise de parole -------------------------------------
+// Chaque liste rangée occupe des lieux précis (extra.loc) : on la met dans une pièce choisie, de préférence libre.
+
+function roomsOf(p) {
+  const rooms = [];
+  lociOf(p).forEach((l, i) => {
+    let r = rooms[rooms.length - 1];
+    if (!r || r.name !== l.room) rooms.push((r = { name: l.room, start: i, n: 0 }));
+    r.n++;
+  });
+  return rooms;
+}
+
+// Lieu → titre de la liste qui l'occupe encore dans le Coffre.
+function occupancy(p) {
+  const used = {};
+  for (const it of Object.values(S.items)) {
+    if (it.extra?.stored && it.extra.palace === p.id) for (const i of it.extra.loc || []) used[i] = it.prompt;
+  }
+  return used;
+}
+
+async function chooseRoom(stage, palace, n) {
+  const rooms = roomsOf(palace);
+  if (rooms.length < 2) return 0;
+  const used = occupancy(palace);
+  // Ce qui occupe déjà les lieux de la pièce elle-même (le débordement éventuel sur la suivante est signalé à part).
+  const info = rooms.map((r) => {
+    const busy = new Set();
+    for (let i = r.start; i < r.start + r.n; i++) if (used[i]) busy.add(used[i]);
+    return { ...r, busy: [...busy] };
+  });
+  const best = info.find((r) => !r.busy.length && r.n >= n) || info.find((r) => !r.busy.length) || info[0];
+  return stage.ask((done) => h('div', { class: 'screen' },
+    h('h2', null, 'Dans quelle pièce ?'),
+    h('p', { class: 'muted' }, `Range chaque liste dans sa propre pièce : les images ne se mélangent pas. Choisis de préférence une pièce libre (✨). Il faut ${n} endroit${n > 1 ? 's' : ''}.`),
+    h('div', { class: 'palace-list' }, info.map((r) => h('button', { class: `palace-card ${r === best ? 'last' : ''}`, onclick: () => done(r.start) },
+      h('span', { class: 'palace-icon' }, r.busy.length ? '🧳' : '✨'),
+      h('span', null, h('strong', null, r.name), h('br'),
+        h('small', { class: 'muted' }, `${r.n} lieu${r.n > 1 ? 'x' : ''} · ${r.busy.length ? `déjà occupée : « ${r.busy.join(' », « ')} »` : 'libre'}${r.n < n ? ' · trop petite, on continue dans la suivante' : ''}`))))),
+  ));
+}
+
+export async function storeInPalace(stage, { title, items, hint = '', cat = 'liste', talk = false }) {
+  const n = items.length;
+  await guideOnce(stage, 'J’ai compris');
+  const palace = await choosePalace(stage, n, { title: talk ? 'Dans quel palais ranger ta prise de parole ?' : 'Dans quel palais ranger ta liste ?' });
+  const start = await chooseRoom(stage, palace, n);
+  const all = lociOf(palace);
+  const loc = Array.from({ length: n }, (_, i) => (start + i) % all.length);
+  const loci = loc.map((i) => all[i]);
+  await screen(stage, {
+    icon: talk ? '🎤' : palace.icon, title,
+    text: talk
+      ? [`Tes ${n} idées vont être posées une par une sur les endroits de ton palais, dans l’ordre où tu veux les dire.`, 'Pour chaque idée, imagine une scène sur l’endroit indiqué, puis touche cet endroit.', 'Le jour J, tu refais le tour dans ta tête : chaque endroit te rappelle l’idée suivante. Plus besoin de notes.']
+      : [`Tes ${n} éléments vont être posés un par un sur les endroits de ton palais.`, 'Pour chacun, imagine une scène sur l’endroit indiqué (l’encadré 💡 te donne une idée), puis touche cet endroit.', 'Au moment où tu en auras besoin, refais le tour dans ta tête : chaque endroit te rend ce que tu y as posé.'],
+    buttons: [{ label: 'C’est parti' }],
+  });
+  const { images } = await placeItems(stage, items, loci, { real: true, talk });
+  await screen(stage, { icon: '🚶', title: 'La promenade', text: 'Ferme les yeux et refais la promenade dans ta tête, lieu après lieu.', buttons: [{ label: 'C’est fait' }] });
+  if (talk) {
+    await screen(stage, {
+      icon: '🎤', title: 'Répète à voix haute',
+      text: ['Fais ta prise de parole à voix haute, sans notes : parcours ton palais, et chaque lieu te donne l’idée suivante.', 'Si une idée ne revient pas, sa scène était trop faible : tu le verras juste après.'],
+      buttons: [{ label: 'C’est fait' }],
+    });
+  }
+  const answers = await recallOrdered(stage, { title, subtitle: 'Qu’as-tu rangé ici ?', n, cues: loci });
+  const { res, score } = listScore(answers, items, true);
+  createItem({
+    type: 'list', src: 'mavie', prompt: title, answer: items, hint: [hint, ...images].filter(Boolean).join(' · '),
+    extra: { cat, ordered: true, cues: loci, palace: palace.id, loc, stored: true }, due: eveningDue(),
+  });
+  await resultScreen(stage, {
+    score,
+    text: 'Rangé dans le Coffre. Ce soir, je te redemande la promenade, puis elle reviendra juste avant l’oubli.',
+    body: listResultView(items, res, { cues: loci, answers }),
   });
 }
 
@@ -278,7 +413,7 @@ export async function play(ctx) {
   const items = sample(GAME_WORDS, n);
   const loci = lociFor(palace, n);
   if (ctx.chrono) await screen(stage, { icon: '⏱️', title: 'Défi chrono', text: `${n} éléments à déposer le plus vite possible, puis à restituer. Le chrono démarre maintenant.`, buttons: [{ label: 'Go !' }] });
-  else if (ctx.palace) await screen(stage, { icon: palace.icon, title: palace.name, text: [`${n} objets à déposer, un par lieu, dans l’ordre de ta promenade.`, 'Pour chacun, suis l’idée du coach et prends le temps de voir la scène.'], buttons: [{ label: 'C’est parti' }] });
+  else if (ctx.palace) await screen(stage, { icon: palace.icon, title: palace.name, text: [`C’est l’entraînement : ${n} mots au hasard, un sur chaque endroit de ton palais.`, 'Pour chacun, imagine une scène un peu folle sur l’endroit indiqué (l’encadré 💡 te donne une idée), puis touche cet endroit.', 'À la fin, tu refais le tour dans ta tête et tu retrouves les mots.'], buttons: [{ label: 'C’est parti' }] });
   const { images, ms } = await placeItems(stage, items, loci, { chrono: ctx.chrono });
   await screen(stage, { icon: '🚶', title: 'La promenade', text: 'Ferme les yeux quelques secondes et refais la promenade dans ta tête, lieu après lieu.', buttons: [{ label: 'C’est fait' }] });
   await recallBreak(ctx, 'Refais la promenade et retrouve l’élément déposé sur chaque lieu.');

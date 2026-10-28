@@ -200,6 +200,14 @@ export function runPalaceBuilder() {
   });
 }
 
+// Ranger une liste « Ma vie » (ou les points d'une prise de parole) dans un palais.
+export function runPalaceStore(opts) {
+  return guard(async () => {
+    const stage = new Stage(opts.talk ? 'Prise de parole' : 'Ranger dans le palais', { onClose: refresh });
+    try { await palais.storeInPalace(stage, opts); } finally { stage.close(); }
+  });
+}
+
 export function startTechnique(tech) {
   const unlocked = techUnlocked(tech);
   return playGame(TECHS[tech].game, { title: TECHS[tech].name, annex: true, locked: !unlocked });
