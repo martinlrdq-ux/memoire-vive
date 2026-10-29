@@ -16,6 +16,7 @@ import { editPalace, fillSize, palaceGuide, storedLists } from './games/palais.j
 import { VIRTUAL_PALACES } from './data/palaces.js';
 import { LANGUAGES } from './data/vocab.js';
 import { owlSVG } from './core/logo.js';
+import { celebrate } from './core/celebrate.js';
 import { cloudEnabled, session, signup, login, logout, pullIfNewer, push } from './core/cloud.js';
 import { notifStatus, enableNotifs, disableNotifs, testNotif, checkNotifs } from './core/notify.js';
 import './reminders.js';
@@ -84,6 +85,15 @@ export function render() {
   ].filter(Boolean));
   if (!tabbar.isConnected) app.append(tabbar);
   entering = false;
+  if (tab === 'home') celebrateDay();
+}
+
+// Mission du jour à 100 % : la fête, une seule fois par jour, une fois la barre de l'accueil remplie.
+function celebrateDay() {
+  if (!sessionToday().done || S.records.celebrated === dayKey()) return;
+  S.records.celebrated = dayKey();
+  save();
+  setTimeout(() => celebrate({ streak: streakCount(), name: S.profile.name }), AFTER_STAGE + 700);
 }
 onRefresh(render);
 
@@ -193,7 +203,7 @@ function home() {
         h('span', null, STEP_INFO[k][1], k === 'technique' ? h('span', { class: 'muted' }, ` · ${techLabel(tech)}`) : null,
           k === 'coffre' ? h('span', { class: 'muted' }, ` · ${q.items.length ? plural(q.items.length, 'révision') : 'à jour'}`) : null)))),
       s.done
-        ? h('p', { class: 'done-line' }, '✓ Mission terminée. À demain !')
+        ? h('button', { class: 'done-line', 'aria-label': 'Mission terminée. Revoir la fête', onclick: () => celebrate({ streak: streakCount(), name: S.profile.name }) }, '✓ Mission terminée. À demain !')
         : h('button', { class: 'btn primary block', onclick: runSession, html: `${PLAY_SVG} ${started ? 'Continuer' : 'Commencer'}` }),
       !s.done && h('div', { class: 'row center wrap' },
         s.kind === 'light' && h('button', { class: 'btn ghost small', onclick: () => { s.kind = 'full'; save(); render(); } }, 'Faire une session complète'),

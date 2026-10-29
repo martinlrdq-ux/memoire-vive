@@ -1,5 +1,5 @@
 // Généré par tools/build_sw.py : ne pas modifier à la main.
-const VERSION = '34294552ea';
+const VERSION = '5a24ab9a56';
 const CACHE = `memoire-${VERSION}`;
 const ASSETS = [
   './',
@@ -12,6 +12,7 @@ const ASSETS = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'js/app.js',
+  'js/core/celebrate.js',
   'js/core/cloud.js',
   'js/core/config.js',
   'js/core/engine.js',

@@ -437,7 +437,7 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-mut
   display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 24px;
 }
 .mission-steps li.ok .step-icon { background: var(--success-soft); box-shadow: none; color: var(--success); font-weight: 800; font-size: 22px; }
-.done-line { color: var(--success); font-weight: 800; font-size: 18px; margin: 14px 0 0; text-align: center; }
+.done-line { appearance: none; display: block; width: 100%; background: none; border: 0; padding: 0; cursor: pointer; font: 800 18px/1.3 var(--font); color: var(--success); margin: 14px 0 0; text-align: center; }
 .capture-card { display: flex; gap: 14px; align-items: center; background: var(--row); border: 2px dashed var(--line); box-shadow: none; }
 .capture-card strong { font-size: 18px; }
 .capture-plus {
@@ -737,6 +737,60 @@ details.why p, details.why ul { margin-top: 8px; }
 .fab.pop-in { animation: pop-in 0.34s var(--ease-out) 0.1s backwards; }
 .mission-steps li.just .step-icon { animation: check-pop 0.5s var(--ease-out) 0.3s backwards; }
 .stage-body > .step-in { animation: step-in 0.28s var(--ease-out) backwards; }
+
+/* --- Fête de fin de mission (js/core/celebrate.js) : le hibou surgit, lève le pouce, fait un clin d'œil. --- */
+.celebrate {
+  position: fixed; inset: 0; z-index: 120; overflow: hidden; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: calc(var(--safe-t) + 16px) 16px calc(var(--safe-b) + 16px);
+  background: radial-gradient(circle at 50% 58%, rgba(40, 110, 255, 0.86), rgba(10, 20, 74, 0.97) 72%);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  animation: co-fade 0.25s ease backwards;
+}
+.celebrate.out { opacity: 0; transition: opacity 0.3s ease; }
+.co-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.co-canvas.front { z-index: 2; }
+.co-content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center; color: #fff; }
+.co-title {
+  font: 800 64px/1 var(--font); letter-spacing: -0.02em; color: var(--xp);
+  text-shadow: 0 5px 0 #b8860b, 0 14px 30px rgba(0, 0, 0, 0.35);
+  animation: co-stamp 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 0.15s backwards;
+}
+.co-owl { width: min(270px, 70vw); margin: 4px 0 2px; animation: co-rise 0.75s cubic-bezier(0.3, 1.45, 0.55, 1) backwards; }
+.co-owl svg { display: block; width: 100%; height: auto; overflow: visible; transform-origin: 50% 92%; animation: co-sway 2.4s ease-in-out 1.3s infinite; }
+.co-owl g, .co-owl path { transform-box: fill-box; }
+.co-arm { transform-origin: 0% 100%; animation: co-arm 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) 0.5s backwards; }
+.co-thumb { transform-origin: 50% 80%; animation: co-pump 1.8s var(--ease-out) 1.05s infinite; }
+.co-flap { transform-origin: 50% 0%; animation: co-flap 0.45s ease-in-out 0.6s 3; }
+.co-grin { transform-origin: 50% 0%; animation: co-grin 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) 0.55s backwards; }
+.co-wink { transform-origin: 50% 50%; animation: co-wink 2.6s ease 1.25s infinite; }
+.co-closed { opacity: 0; animation: co-closed 2.6s ease 1.25s infinite; }
+.co-spark { transform-origin: 50% 50%; opacity: 0; animation: co-twinkle 1.8s ease 1.1s infinite; }
+.co-spark:nth-of-type(2) { animation-delay: 1.25s; }
+.co-spark:nth-of-type(3) { animation-delay: 1.4s; }
+.co-sub { font: 800 26px/1.2 var(--font); margin: 6px 0 0; text-shadow: 0 3px 12px rgba(0, 0, 0, 0.3); animation: fade-up 0.4s var(--ease-out) 0.9s backwards; }
+.co-streak { font: 700 18px/1.3 var(--font); margin: 6px 0 0; color: var(--on-night-muted); animation: fade-up 0.4s var(--ease-out) 1.05s backwards; }
+.co-btn {
+  appearance: none; border: 0; cursor: pointer; margin-top: 22px; padding: 14px 34px; border-radius: var(--radius-pill);
+  background: var(--xp); color: var(--on-xp); font: 800 18px/1 var(--font); box-shadow: 0 5px 0 #b8860b;
+  animation: pop-in 0.35s var(--ease-out) 1.4s backwards;
+}
+.co-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b8860b; }
+@keyframes co-fade { from { opacity: 0; } }
+@keyframes co-stamp { from { opacity: 0; transform: scale(2.4) rotate(-8deg); } }
+@keyframes co-rise {
+  0% { opacity: 0; transform: translateY(70vh) scale(0.6, 0.6); }
+  60% { opacity: 1; transform: translateY(-14px) scale(0.92, 1.1); }
+  80% { transform: translateY(4px) scale(1.08, 0.92); }
+}
+@keyframes co-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg) translateY(-4px); } }
+@keyframes co-arm { from { transform: rotate(130deg) scale(0.7); } }
+@keyframes co-pump { 0%, 40%, 100% { transform: none; } 12% { transform: scale(1.28) rotate(-8deg); } 24% { transform: scale(0.96); } }
+@keyframes co-flap { 50% { transform: rotate(-28deg); } }
+@keyframes co-grin { from { transform: scale(0.2, 0.1); } }
+@keyframes co-wink { 0%, 6%, 34%, 100% { transform: none; } 10%, 30% { transform: scaleY(0); } }
+@keyframes co-closed { 0%, 7%, 33%, 100% { opacity: 0; } 10%, 30% { opacity: 1; } }
+@keyframes co-twinkle { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); } 15% { opacity: 1; transform: scale(1.2) rotate(45deg); } 35% { opacity: 0; transform: scale(0.6) rotate(90deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
