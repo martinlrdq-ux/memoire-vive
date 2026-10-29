@@ -374,7 +374,8 @@ async function chooseRoom(stage, palace, n) {
   ));
 }
 
-export async function storeInPalace(stage, { title, items, hint = '', cat = 'liste', talk = false }) {
+// src « culture » : une liste toute prête du Savoir du jour (theme dit laquelle de ses thématiques).
+export async function storeInPalace(stage, { title, items, hint = '', cat = 'liste', talk = false, src = 'mavie', theme = null }) {
   const n = items.length;
   await guideOnce(stage, 'J’ai compris');
   const palace = await choosePalace(stage, n, { title: talk ? 'Dans quel palais ranger ta prise de parole ?' : 'Dans quel palais ranger ta liste ?' });
@@ -402,8 +403,8 @@ export async function storeInPalace(stage, { title, items, hint = '', cat = 'lis
   const { res, score } = listScore(answers, items, true);
   recordLoci(palace.id, loci, res);
   createItem({
-    type: 'list', src: 'mavie', prompt: title, answer: items, hint: [hint, ...images].filter(Boolean).join(' · '),
-    extra: { cat, ordered: true, cues: loci, palace: palace.id, loc, stored: true }, due: eveningDue(),
+    type: 'list', src, prompt: title, answer: items, hint: [hint, ...images].filter(Boolean).join(' · '),
+    extra: { cat, ordered: true, cues: loci, palace: palace.id, loc, stored: true, theme }, due: eveningDue(),
   });
   await resultScreen(stage, {
     score,

@@ -88,6 +88,7 @@ function defaultState() {
     seenIntro: {},
     palaces: [],
     palaceStats: {}, // palais → « pièce|lieu » → { ok, ko } aux rappels
+    culture: { on: true, perDay: 3, off: [], day: null, turn: 0 }, // Savoir du jour : thématiques décochées dans off
     records: {},
     lastBackup: null,
     lastPlayed: {},

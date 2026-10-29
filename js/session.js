@@ -16,8 +16,9 @@ import * as lecture from './games/lecture.js';
 import * as message from './games/message.js';
 import * as ouestil from './games/ouestil.js';
 import * as echo from './games/echo.js';
+import * as savoir from './games/savoir.js';
 
-export const GAMES = { filrouge, croquis, quiestce, code, palais, mots, lecture, message, ouestil, echo };
+export const GAMES = { filrouge, croquis, quiestce, code, palais, mots, lecture, message, ouestil, echo, savoir };
 
 let refresh = () => {};
 export function onRefresh(fn) { refresh = fn; }
@@ -29,11 +30,19 @@ async function guard(fn) {
 
 const finalRecall = (stage) => (text) => screen(stage, { icon: '🔁', title: 'Rappel final', text: [text, 'Pas d’aide, pas de retour en arrière : c’est l’effort de rappel qui ancre le souvenir.'], buttons: [{ label: 'Je suis prêt' }] });
 
-const STEP_LABEL = { warmup: ['〰️', 'Échauffement', '2 min'], coffre: ['🗝️', 'Le Coffre', '5 min'], technique: ['✨', 'Technique du jour', '6 min'], bilan: ['🌙', 'Bilan du jour', '1 min'] };
+const STEP_LABEL = { warmup: ['〰️', 'Échauffement', '2 min'], coffre: ['🗝️', 'Le Coffre', '5 min'], savoir: ['📚', 'Savoir du jour', '2 min'], technique: ['✨', 'Technique du jour', '6 min'], bilan: ['🌙', 'Bilan du jour', '1 min'] };
+
+// Le Savoir du jour entre dans la mission s'il est prêt au moment où elle commence ;
+// ensuite la liste des étapes ne bouge plus.
+function withSavoir(s) {
+  if (s.savoir != null) return s.savoir;
+  return !(s.steps && Object.keys(s.steps).length) && savoir.savoirStatus().ready;
+}
 
 export function sessionSteps(s = sessionToday()) {
-  if (s.kind === 'full') return ['warmup', 'coffre', 'technique', 'bilan'];
-  return s.extra ? ['coffre', 'technique', 'bilan'] : ['coffre', 'bilan'];
+  const sv = withSavoir(s) ? ['savoir'] : [];
+  if (s.kind === 'full') return ['warmup', 'coffre', ...sv, 'technique', 'bilan'];
+  return s.extra ? ['coffre', ...sv, 'technique', 'bilan'] : ['coffre', ...sv, 'bilan'];
 }
 
 export function techLabel(tech) {
@@ -47,12 +56,16 @@ export function runSession() {
     if (!s.tech) { s.tech = techniqueOfDay(); save(); }
     const stage = new Stage('Mission du jour', { onClose: refresh });
     try {
+      if (s.savoir == null) { s.savoir = withSavoir(s); save(); }
       const steps = sessionSteps(s);
       if (!steps.some((k) => s.steps[k])) {
+        const paused = !s.savoir && savoir.savoirStatus().reason === 'backlog';
         await screen(stage, {
           icon: '🎯', title: s.kind === 'full' ? 'Session complète' : 'Révisions du jour',
-          text: s.kind === 'full' ? 'Environ 15 minutes, et toujours un rappel à la fin.' : 'Aujourd’hui, juste le Coffre : environ 5 minutes. Les jours de session complète sont réglables.',
-          body: h('ol', { class: 'steps' }, steps.map((k) => h('li', null, `${STEP_LABEL[k][0]} ${STEP_LABEL[k][1]}`, k === 'technique' ? ` : ${techLabel(s.tech)}` : '', h('span', { class: 'muted' }, ` · ${STEP_LABEL[k][2]}`)))),
+          text: s.kind === 'full' ? 'Environ 15 minutes, et toujours un rappel à la fin.' : `Aujourd’hui, juste le Coffre${s.savoir ? ' et le Savoir du jour' : ''} : environ ${s.savoir ? 7 : 5} minutes. Les jours de session complète sont réglables.`,
+          body: h('div', null,
+            h('ol', { class: 'steps' }, steps.map((k) => h('li', null, `${STEP_LABEL[k][0]} ${STEP_LABEL[k][1]}`, k === 'technique' ? ` : ${techLabel(s.tech)}` : '', h('span', { class: 'muted' }, ` · ${STEP_LABEL[k][2]}`)))),
+            paused && h('p', { class: 'muted small' }, '📚 Savoir du jour en pause : ton Coffre a du retard, il passe avant.')),
           buttons: [{ label: 'C’est parti' }],
         });
       }
@@ -73,6 +86,7 @@ export function runSession() {
             await screen(stage, { icon: '🗝️', title: 'Le Coffre est à jour', text: 'Aucune révision due pour l’instant. Place à la technique du jour.' });
           }
         }
+        if (step === 'savoir' && S.culture.day !== dayKey()) await GAMES.savoir.play({ stage, session: true });
         if (step === 'technique') {
           if (s.tech === 'bilan') await runBilan(stage);
           else await GAMES[TECHS[s.tech].game].play({ stage, session: true, beforeRecall: finalRecall(stage) });
@@ -147,9 +161,10 @@ export function runDelayedRecall() {
   });
 }
 
-export function runFreeReview(src) {
+// Révision libre d'une source du Coffre, ou d'une seule thématique du Savoir du jour.
+export function runFreeReview(src, theme = null) {
   return guard(async () => {
-    const items = Object.values(S.items).filter((i) => !src || i.src === src).sort((a, b) => (a.m.last || 0) - (b.m.last || 0)).slice(0, 20);
+    const items = Object.values(S.items).filter((i) => (!src || i.src === src) && (!theme || i.extra?.theme === theme)).sort((a, b) => (a.m.last || 0) - (b.m.last || 0)).slice(0, 20);
     const stage = new Stage('Révision libre', { onClose: refresh });
     try {
       if (!items.length) { await screen(stage, { icon: '🗂️', title: 'Rien ici', text: 'Aucun élément dans ce thème pour l’instant.' }); return; }
@@ -213,6 +228,20 @@ export function runPalaceView(p) {
   return guard(async () => {
     const stage = new Stage('Mon palais', { onClose: refresh, confirmClose: false });
     try { await palais.showPalace(stage, p); } finally { stage.close(); }
+  });
+}
+
+// Savoir du jour lancé hors de la mission : il compte quand même pour l'étape du jour.
+export function runSavoir() {
+  return guard(async () => {
+    const stage = new Stage('Savoir du jour', { onClose: refresh });
+    try {
+      const r = await GAMES.savoir.play({ stage });
+      const s = sessionToday();
+      // Mission pas encore commencée : l'étape y entre, déjà cochée. Mission déjà finie : on n'y touche pas.
+      if (!r.skipped && s.savoir == null && !Object.keys(s.steps).length) s.savoir = true;
+      if (!r.skipped && s.savoir) { s.steps.savoir = true; save(); }
+    } finally { stage.close(); }
   });
 }
 

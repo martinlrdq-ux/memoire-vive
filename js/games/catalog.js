@@ -8,6 +8,13 @@ export const CATALOG = {
     hard: 'Chercher une réponse demande un effort, et c’est cet effort qui ancre le souvenir. Un trou de mémoire n’est pas un échec : l’élément revient simplement plus tôt.',
     steps: ['Lis la question.', 'Tape la réponse de mémoire, ou dicte-la avec le micro du clavier.', 'Compare, puis dis honnêtement si c’était facile ou difficile.'],
   },
+  savoir: {
+    name: 'Savoir du jour', icon: '📚', tech: null, kind: 'core', memory: 'Sémantique',
+    desc: 'Chaque jour, quelques fiches d’histoire et de géographie, que tu rends mémorables avant de les confier au Coffre.',
+    why: 'On progresse sur ce qu’on entraîne : pour connaître l’histoire, il faut s’entraîner sur l’histoire. Chaque fiche passe par la technique qui lui va : le système majeur pour une date, un mot-clé sonore pour une capitale (une méthode testée en classe dès 1980, justement sur des capitales), une image pour un fait. Ensuite, le Coffre te la redemande juste avant l’oubli.',
+    hard: 'Une date seule ne veut rien dire, c’est pour ça qu’elle s’oublie. La phrase « pourquoi ça compte » et ton image lui donnent un sens et une prise. On commence par les grands repères : les détails viennent ensuite s’y accrocher.',
+    steps: ['Lis la fiche et la phrase qui l’explique.', 'Fabrique une image : la technique proposée t’aide.', 'Retrouve tout de suite les réponses. Le Coffre prend ensuite le relais.'],
+  },
   palais: {
     name: 'Le Palais', icon: '🏛️', tech: 'palace', kind: 'main', memory: 'Épisodique, listes',
     desc: 'Range une liste sur les meubles d’un endroit que tu connais par cœur, puis refais le tour dans ta tête.',

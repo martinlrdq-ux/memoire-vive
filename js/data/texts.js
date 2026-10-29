@@ -1,5 +1,6 @@
 // Textes courts pour « Lecture active ». Chaque idée clé a des mots repères
 // (pour pré-cocher le rappel libre) et une question pour le Coffre.
+// Un texte avec un « theme » appartient au Savoir du jour : il ne sort que si ce thème est coché.
 
 export const TEXTS = [
   {
@@ -168,6 +169,62 @@ export const TEXTS = [
       { s: 'Les fèves sont fermentées, séchées, torréfiées.', k: ['ferment', 'torref', 'seche'], q: 'Quelles sont les trois étapes de préparation des fèves (une suffit) ?', a: 'fermentees|sechees|torrefiees|fermentation|sechage|torrefaction' },
       { s: 'Tablette : Fry, 1847 ; chocolat au lait : Daniel Peter, 1875.', k: ['fry', 'peter', '1847', '1875', 'lait'], q: 'Dans quel pays a été mis au point le chocolat au lait ?', a: 'suisse|la suisse|en suisse' },
       { s: 'La Côte d’Ivoire fournit près de 40 % du cacao.', k: ['cote d ivoire', '40'], q: 'Quel est le premier producteur mondial de cacao ?', a: 'cote d ivoire|la cote d ivoire' },
+    ],
+  },
+  {
+    id: 'revolution', theme: 'fr-moderne', title: 'La Révolution française',
+    text: `En 1789, la France est en crise : l'État est presque ruiné et le pain coûte cher. Pour trouver de l'argent, Louis XVI réunit les États généraux à Versailles, en mai. Les députés du tiers état, qui représentent l'immense majorité des Français, se proclament Assemblée nationale et jurent, dans la salle du Jeu de paume, de donner une constitution au pays. Le 14 juillet, le peuple de Paris prend la Bastille, une prison royale, symbole du pouvoir arbitraire. Dans la nuit du 4 août, les privilèges des nobles et du clergé sont abolis, et le 26 août l'Assemblée adopte la Déclaration des droits de l'homme et du citoyen. En 1791, le roi tente de fuir, mais il est arrêté à Varennes. La royauté est abolie en septembre 1792 et Louis XVI est guillotiné en janvier 1793. Vient ensuite la Terreur, menée notamment par Robespierre, jusqu'à sa chute en juillet 1794. En 1799, le général Bonaparte prend le pouvoir par un coup d'État.`,
+    ideas: [
+      { s: 'L’État est presque ruiné : Louis XVI réunit les États généraux en mai 1789.', k: ['etats generaux', 'ruine', 'argent'], q: 'Quelle assemblée Louis XVI réunit-il en mai 1789 pour trouver de l’argent ?', a: 'les etats generaux|etats generaux' },
+      { s: 'Le tiers état se proclame Assemblée nationale et prête le serment du Jeu de paume.', k: ['tiers etat', 'jeu de paume', 'assemblee nationale', 'serment'], q: 'Dans quelle salle les députés jurent-ils de donner une constitution à la France ?', a: 'le jeu de paume|jeu de paume|la salle du jeu de paume' },
+      { s: 'Le 14 juillet 1789, le peuple de Paris prend la Bastille.', k: ['bastille', '14 juillet'], q: 'Quelle prison royale le peuple de Paris prend-il le 14 juillet 1789 ?', a: 'la bastille|bastille' },
+      { s: 'Dans la nuit du 4 août, les privilèges sont abolis.', k: ['privilege', '4 aout'], q: 'Qu’abolit-on dans la nuit du 4 août 1789 ?', a: 'les privileges|privileges' },
+      { s: 'Le 26 août, la Déclaration des droits de l’homme et du citoyen.', k: ['declaration', 'droits de l homme'], q: 'Quel texte l’Assemblée adopte-t-elle le 26 août 1789 ?', a: 'la declaration des droits de l homme et du citoyen|declaration des droits de l homme|droits de l homme|ddhc' },
+      { s: 'En 1791, le roi tente de fuir et il est arrêté à Varennes.', k: ['varennes', 'fuite', 'fuir'], q: 'Dans quelle ville Louis XVI est-il arrêté lors de sa fuite, en 1791 ?', a: 'varennes|a varennes' },
+      { s: 'La royauté est abolie en 1792, Louis XVI guillotiné en 1793.', k: ['guillotin', '1793', 'royaute', 'republique'], q: 'En quelle année Louis XVI est-il guillotiné ?', a: '1793' },
+      { s: 'La Terreur, avec Robespierre, puis le coup d’État de Bonaparte en 1799.', k: ['terreur', 'robespierre', 'bonaparte', '1799', 'coup d etat'], q: 'Qui prend le pouvoir par un coup d’État en 1799 ?', a: 'bonaparte|napoleon bonaparte|napoleon|le general bonaparte' },
+    ],
+  },
+  {
+    id: 'grande-guerre', theme: 'guerres', title: 'La Grande Guerre',
+    text: `Le 28 juin 1914, l'archiduc François-Ferdinand, héritier de l'Autriche-Hongrie, est assassiné à Sarajevo. Par le jeu des alliances, toute l'Europe entre en guerre en quelques semaines : la France, le Royaume-Uni et la Russie d'un côté, l'Allemagne et l'Autriche-Hongrie de l'autre. Beaucoup pensent rentrer pour Noël, mais dès l'automne le front se fige. Les soldats s'enterrent dans des tranchées qui courent de la mer du Nord à la Suisse. En 1916, la bataille de Verdun dure dix mois et devient le symbole des souffrances des poilus. En 1917, les États-Unis entrent en guerre aux côtés des Alliés, tandis que la Russie, en pleine révolution, en sort. Les Alliés reprennent l'avantage en 1918. L'armistice est signé le 11 novembre à l'aube, dans un wagon, en forêt de Compiègne, et les combats cessent à 11 heures. Près de 1,4 million de soldats français sont morts.`,
+    ideas: [
+      { s: 'L’archiduc François-Ferdinand est assassiné à Sarajevo, le 28 juin 1914.', k: ['sarajevo', 'francois ferdinand', 'archiduc', 'assassin'], q: 'Dans quelle ville l’archiduc François-Ferdinand est-il assassiné en 1914 ?', a: 'sarajevo|a sarajevo' },
+      { s: 'Le jeu des alliances entraîne toute l’Europe dans la guerre.', k: ['alliance'], q: 'Qu’est-ce qui entraîne si vite toute l’Europe dans la guerre ?', a: 'les alliances|alliances|le jeu des alliances' },
+      { s: 'La France, le Royaume-Uni et la Russie contre l’Allemagne et l’Autriche-Hongrie.', k: ['royaume uni', 'russie', 'autriche', 'angleterre'], q: 'Avec quels deux pays la France est-elle alliée en 1914 ?', a: 'royaume uni russie|angleterre russie' },
+      { s: 'Le front se fige : les soldats s’enterrent dans des tranchées.', k: ['tranchee'], q: 'Dans quoi les soldats s’enterrent-ils quand le front se fige ?', a: 'des tranchees|tranchees|les tranchees' },
+      { s: 'Verdun, en 1916 : dix mois de combats.', k: ['verdun'], q: 'Quelle bataille de 1916 dure dix mois ?', a: 'verdun|la bataille de verdun' },
+      { s: 'En 1917, les États-Unis entrent en guerre et la Russie en sort.', k: ['etats unis', 'americain', 'amerique'], q: 'Quel pays entre en guerre en 1917 aux côtés des Alliés ?', a: 'les etats unis|etats unis|usa|l amerique|amerique' },
+      { s: 'L’armistice est signé le 11 novembre 1918, dans un wagon en forêt de Compiègne.', k: ['11 novembre', 'armistice', 'compiegne', 'wagon'], q: 'Où l’armistice du 11 novembre 1918 est-il signé ?', a: 'dans un wagon|un wagon|en foret de compiegne|compiegne|rethondes' },
+      { s: 'Près de 1,4 million de soldats français sont morts.', k: ['1 4 million', 'million'], q: 'Combien de soldats français sont morts pendant la Grande Guerre ?', a: '1,4 million|1 4 million|pres de 1,4 million' },
+    ],
+  },
+  {
+    id: 'cinquieme', theme: 'fr-contemp', title: 'La Ve République',
+    text: `En mai 1958, la guerre d'Algérie fait vaciller la IVe République, dont les gouvernements changent sans cesse. Le général de Gaulle, héros de la France libre, est rappelé au pouvoir. Une nouvelle constitution est approuvée par référendum en septembre 1958 : c'est la naissance de la Ve République, qui donne beaucoup plus de pouvoir au président. Depuis 1962, celui-ci est élu directement par les Français, au suffrage universel. Son mandat durait sept ans, le septennat ; un référendum l'a réduit à cinq ans, le quinquennat, en 2000. Le président nomme le Premier ministre, qui dirige le gouvernement. Le Parlement compte deux chambres : l'Assemblée nationale, élue directement par les citoyens, et le Sénat, élu par des élus locaux. Le Conseil constitutionnel vérifie que les lois respectent la Constitution. Huit présidents l'ont dirigée, de Charles de Gaulle à Emmanuel Macron.`,
+    ideas: [
+      { s: 'La guerre d’Algérie fait chuter la IVe République en 1958.', k: ['algerie', 'ive republique', '4e republique'], q: 'Quelle guerre fait vaciller la IVe République en 1958 ?', a: 'la guerre d algerie|guerre d algerie|algerie' },
+      { s: 'Le général de Gaulle est rappelé au pouvoir.', k: ['de gaulle', 'gaulle'], q: 'Qui est rappelé au pouvoir en 1958 ?', a: 'de gaulle|charles de gaulle|le general de gaulle' },
+      { s: 'La Constitution est approuvée par référendum en septembre 1958.', k: ['referendum', 'constitution'], q: 'Comment la Constitution de 1958 a-t-elle été approuvée ?', a: 'par referendum|referendum|un referendum' },
+      { s: 'Depuis 1962, le président est élu au suffrage universel direct.', k: ['suffrage universel', '1962', 'directement'], q: 'Depuis quelle année le président est-il élu directement par les Français ?', a: '1962' },
+      { s: 'Le septennat est devenu quinquennat en 2000.', k: ['quinquennat', 'septennat', 'cinq ans', '5 ans'], q: 'Comment appelle-t-on le mandat présidentiel de cinq ans ?', a: 'le quinquennat|quinquennat' },
+      { s: 'Le président nomme le Premier ministre.', k: ['premier ministre', 'nomme'], q: 'Qui nomme le Premier ministre ?', a: 'le president|president|le president de la republique' },
+      { s: 'Deux chambres : l’Assemblée nationale et le Sénat.', k: ['senat', 'assemblee nationale', 'deux chambres'], q: 'Quelles sont les deux chambres du Parlement ?', a: 'assemblee nationale senat' },
+      { s: 'Le Conseil constitutionnel vérifie que les lois respectent la Constitution.', k: ['conseil constitutionnel'], q: 'Quelle institution vérifie que les lois respectent la Constitution ?', a: 'le conseil constitutionnel|conseil constitutionnel' },
+    ],
+  },
+  {
+    id: 'fleuves', theme: 'relief', title: 'Les grands fleuves de France',
+    text: `La France compte cinq grands fleuves. La Loire est le plus long : environ 1 000 km, depuis le mont Gerbier-de-Jonc, en Ardèche, jusqu'à l'Atlantique, près de Saint-Nazaire. On la dit sauvage, car elle est peu aménagée, et ses rives sont bordées de châteaux de la Renaissance, comme Chambord. La Seine traverse Paris et Rouen avant de rejoindre la Manche au Havre. Le Rhône naît dans un glacier des Alpes suisses, traverse le lac Léman, reçoit la Saône à Lyon et se jette dans la Méditerranée en formant le delta de la Camargue. La Garonne prend sa source en Espagne, dans les Pyrénées, arrose Toulouse et Bordeaux, puis rejoint la Dordogne pour former l'estuaire de la Gironde. Enfin, le Rhin sert de frontière avec l'Allemagne le long de l'Alsace et passe à Strasbourg.`,
+    ideas: [
+      { s: 'La France compte cinq grands fleuves.', k: ['cinq', '5 fleuves', '5 grands'], q: 'Combien de grands fleuves compte la France ?', a: '5|cinq' },
+      { s: 'La Loire est le plus long : environ 1 000 km.', k: ['1000', '1 000', 'plus long'], q: 'Quelle est, à peu près, la longueur de la Loire ?', a: '1000 km|1000|mille kilometres' },
+      { s: 'Elle naît au mont Gerbier-de-Jonc, en Ardèche.', k: ['gerbier', 'ardeche'], q: 'Où la Loire prend-elle sa source ?', a: 'au mont gerbier de jonc|mont gerbier de jonc|gerbier de jonc|ardeche|en ardeche' },
+      { s: 'Ses rives sont bordées de châteaux, comme Chambord.', k: ['chateau', 'chambord'], q: 'Quel château est cité parmi ceux qui bordent la Loire ?', a: 'chambord|le chateau de chambord' },
+      { s: 'La Seine rejoint la Manche au Havre.', k: ['havre'], q: 'Dans quelle ville la Seine rejoint-elle la Manche ?', a: 'le havre|havre|au havre' },
+      { s: 'Le Rhône naît dans un glacier suisse et forme le delta de la Camargue.', k: ['camargue', 'glacier', 'delta'], q: 'Quel delta le Rhône forme-t-il en se jetant dans la Méditerranée ?', a: 'la camargue|camargue|le delta de la camargue' },
+      { s: 'La Garonne et la Dordogne forment l’estuaire de la Gironde.', k: ['gironde', 'dordogne', 'estuaire'], q: 'Quel estuaire la Garonne forme-t-elle avec la Dordogne ?', a: 'la gironde|gironde|l estuaire de la gironde' },
+      { s: 'Le Rhin sert de frontière avec l’Allemagne, le long de l’Alsace.', k: ['rhin', 'alsace', 'frontiere'], q: 'Quel fleuve sert de frontière entre la France et l’Allemagne ?', a: 'le rhin|rhin' },
     ],
   },
 ];

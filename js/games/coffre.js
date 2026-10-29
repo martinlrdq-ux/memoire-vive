@@ -5,8 +5,9 @@ import { recordReview, recordLoci } from '../core/engine.js';
 import { faceSVG } from '../core/faces.js';
 import { speak } from '../core/speech.js';
 import { gradeFor, listResultView } from './common.js';
+import { THEME_BY_ID } from '../data/culture.js';
 
-const SRC_LABEL = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end' };
+const SRC_LABEL = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end', culture: 'Savoir du jour' };
 
 function ageLabel(item) {
   const d = dayDiff(dayKey(item.created), dayKey());
@@ -14,7 +15,8 @@ function ageLabel(item) {
 }
 
 function header(item) {
-  return h('div', { class: 'review-meta' }, h('span', { class: 'tag' }, SRC_LABEL[item.src] || 'Coffre'), h('span', { class: 'muted' }, ageLabel(item)));
+  const theme = THEME_BY_ID[item.extra?.theme];
+  return h('div', { class: 'review-meta' }, h('span', { class: 'tag' }, theme ? `${theme.icon} ${theme.name}` : SRC_LABEL[item.src] || 'Coffre'), h('span', { class: 'muted' }, ageLabel(item)));
 }
 
 function gradeButtons(done, { okDefault = true } = {}) {
@@ -24,9 +26,12 @@ function gradeButtons(done, { okDefault = true } = {}) {
     h('button', { class: 'btn grade easy', onclick: () => done(4) }, 'Facile'));
 }
 
+// Chaîne vide plutôt que null : replaceChildren écrirait « null » à l'écran.
 function hintBlock(item) {
-  if (!item.hint) return null;
-  return h('div', { class: 'hint' }, h('span', { class: 'muted' }, 'Ton astuce : '), item.hint);
+  if (!item.hint && !item.extra?.why) return '';
+  return h('div', null,
+    item.hint && h('div', { class: 'hint' }, h('span', { class: 'muted' }, 'Ton astuce : '), item.hint),
+    item.extra?.why && h('p', { class: 'muted small' }, item.extra.why));
 }
 
 function speakBtn(item) {
@@ -38,7 +43,7 @@ function speakBtn(item) {
 function reviewCard(stage, item) {
   return stage.ask((done) => {
     const wrap = h('div', { class: 'screen review' });
-    const f = input({ placeholder: 'Ta réponse', 'data-autofocus': '' });
+    const f = input({ placeholder: item.extra?.kind === 'date' ? 'L’année' : 'Ta réponse', inputmode: item.extra?.kind === 'date' ? 'numeric' : null, 'data-autofocus': '' });
     const feedback = h('div');
     let locked = false;
     const validate = (giveUp = false) => {

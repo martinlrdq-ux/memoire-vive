@@ -199,18 +199,32 @@ export function recordReview(item, g, { score, typed = true, ctx = 'c', annex = 
   return { pts, ok };
 }
 
+// Révisions « Savoir du jour » permises par jour : de quoi suivre le rythme choisi, sans envahir le Coffre.
+export const cultureCap = () => (S.culture.perDay || 3) * 6;
+
 // File de révision du jour, plafonnée.
+// Les fiches du Savoir du jour passent après tout le reste et ont leur propre plafond :
+// elles ne prennent jamais la place de « Ma vie » ni des techniques.
 export function queue() {
   const t = Date.now();
   const today = dayKey(t);
   const end = dayStart(addDays(today, 1));
-  const doneToday = S.log.filter((l) => l.c === 'c' && dayKey(l.t) === today).length;
+  const doneLog = S.log.filter((l) => l.c === 'c' && dayKey(l.t) === today);
+  const doneToday = doneLog.length;
   const cap = Math.max(0, S.profile.reviewCap - doneToday);
   const due = Object.values(S.items).filter((i) => i.due <= end);
   const now = due.filter((i) => i.due <= t);
   const risk = (i) => (i.m.reps ? retrievability((t - i.m.last) / DAY_MS, i.m.s) : 0);
   now.sort((a, b) => (b.src === 'mavie') - (a.src === 'mavie') || risk(a) - risk(b));
-  return { items: now.slice(0, cap), dueTotal: now.length, later: due.length - now.length, cap, doneToday, catchup: now.length > cap };
+  const main = now.filter((i) => i.src !== 'culture').slice(0, cap);
+  const cultureRoom = Math.min(cap - main.length, cultureCap() - doneLog.filter((l) => l.src === 'culture').length);
+  const culture = now.filter((i) => i.src === 'culture').slice(0, Math.max(0, cultureRoom));
+  const items = [...main, ...culture];
+  return {
+    items, dueTotal: now.length, later: due.length - now.length, cap, doneToday,
+    catchup: now.filter((i) => i.src !== 'culture').length > cap,
+    backlog: now.length - items.length, // révisions dues qui ne tiennent pas aujourd'hui
+  };
 }
 
 export function forecast(days = 7) {
@@ -469,9 +483,10 @@ export function tapStar(color) {
 // --- Mesures ----------------------------------------------------------------------------
 
 // Rétention à 7 jours : rappels intervenant au moins 7 jours après la révision précédente.
-export function retention7(sinceDays = 30) {
+// Le Savoir du jour a sa propre rétention : la courbe principale reste comparable à ce qu'elle était.
+export function retention7(sinceDays = 30, { culture = false } = {}) {
   const since = Date.now() - sinceDays * DAY_MS;
-  const rows = S.log.filter((l) => l.gap != null && l.gap >= 7 && l.t >= since && l.c !== 'f');
+  const rows = S.log.filter((l) => l.gap != null && l.gap >= 7 && l.t >= since && l.c !== 'f' && (l.src === 'culture') === culture);
   return { n: rows.length, rate: rows.length ? rows.filter((l) => l.ok).length / rows.length : null };
 }
 
@@ -481,7 +496,7 @@ export function retentionByWeek(weeks = 12) {
   for (let w = weeks - 1; w >= 0; w--) {
     const end = dayStart(addDays(today, 1 - w * 7));
     const start = end - 7 * DAY_MS;
-    const rows = S.log.filter((l) => l.gap != null && l.gap >= 7 && l.t >= start && l.t < end && l.c !== 'f');
+    const rows = S.log.filter((l) => l.gap != null && l.gap >= 7 && l.t >= start && l.t < end && l.c !== 'f' && l.src !== 'culture');
     out.push({ start, n: rows.length, rate: rows.length ? rows.filter((l) => l.ok).length / rows.length : null });
   }
   return out;

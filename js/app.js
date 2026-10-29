@@ -9,8 +9,10 @@ import {
 import { CATALOG, ANNEXES } from './games/catalog.js';
 import {
   onRefresh, runSession, runCoffreOnly, playGame, runBilanStandalone, runDelayedRecall, runFreeReview, runWeekend,
-  weekendAvailable, startTechnique, sessionSteps, techLabel, runPalaceBuilder, runPalaceStore, runPalaceView,
+  weekendAvailable, startTechnique, sessionSteps, techLabel, runPalaceBuilder, runPalaceStore, runPalaceView, runSavoir,
 } from './session.js';
+import { savoirStatus, STATUS_TEXT, themeStats, themeChips, themeOn, removeTheme, cultureItems } from './games/savoir.js';
+import { THEMES, THEME_BY_ID, LISTS } from './data/culture.js';
 import { delayedReady } from './games/bilan.js';
 import { editPalace, fillSize, palaceGuide, storedLists } from './games/palais.js';
 import { VIRTUAL_PALACES } from './data/palaces.js';
@@ -32,8 +34,8 @@ const TABS = [
   ['parcours', 'Parcours', tabIcon('<path d="M6 21V4"/><path d="M6 4h11.5l-2.5 4 2.5 4H6"/>')],
   ['progres', 'Progrès', tabIcon('<rect x="4.5" y="14" width="4" height="6" rx="1"/><rect x="10" y="9.5" width="4" height="10.5" rx="1"/><rect x="15.5" y="4.5" width="4" height="15.5" rx="1"/>')],
 ];
-const STEP_INFO = { warmup: ['〰️', 'Échauffement'], coffre: ['🗝️', 'Le Coffre'], technique: ['✨', 'Technique'], bilan: ['🌙', 'Bilan du jour'] };
-const SRC_NAMES = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end' };
+const STEP_INFO = { warmup: ['〰️', 'Échauffement'], coffre: ['🗝️', 'Le Coffre'], savoir: ['📚', 'Savoir du jour'], technique: ['✨', 'Technique'], bilan: ['🌙', 'Bilan du jour'] };
+const SRC_NAMES = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end', culture: 'Savoir du jour' };
 const TECH_ORDER = ['story', 'sketch', 'names', 'digits', 'palace', 'oral', 'reading', 'vocab'];
 
 let swReg = null; // service worker (mises à jour)
@@ -201,7 +203,8 @@ function home() {
       h('ol', { class: 'mission-steps' }, steps.map((k) => h('li', { class: stepClass(k) },
         h('span', { class: 'step-icon' }, s.steps[k] ? '✓' : STEP_INFO[k][0]),
         h('span', null, STEP_INFO[k][1], k === 'technique' ? h('span', { class: 'muted' }, ` · ${techLabel(tech)}`) : null,
-          k === 'coffre' ? h('span', { class: 'muted' }, ` · ${q.items.length ? plural(q.items.length, 'révision') : 'à jour'}`) : null)))),
+          k === 'coffre' ? h('span', { class: 'muted' }, ` · ${q.items.length ? plural(q.items.length, 'révision') : 'à jour'}`) : null,
+          k === 'savoir' ? h('span', { class: 'muted' }, ` · ${plural(S.culture.perDay, 'fiche')}`) : null)))),
       s.done
         ? h('button', { class: 'done-line', 'aria-label': 'Mission terminée. Revoir la fête', onclick: () => celebrate({ streak: streakCount(), name: S.profile.name }) }, '✓ Mission terminée. À demain !')
         : h('button', { class: 'btn primary block', onclick: runSession, html: `${PLAY_SVG} ${started ? 'Continuer' : 'Commencer'}` }),
@@ -387,6 +390,7 @@ function coffreView() {
       h('div', { class: 'card-head' }, h('h3', null, '👤 Ma vie'), h('button', { class: 'btn secondary small', onclick: openCapture }, '＋ Ajouter')),
       h('p', { class: 'muted small' }, 'Ce que tu veux vraiment retenir : on entraîne directement la cible réelle. Les réponses restent cachées : on se teste, on ne relit pas.'),
       mavie.length ? h('ul', { class: 'item-list' }, mavie.slice(0, 40).map((i) => mavieRow(i))) : h('p', { class: 'muted' }, 'Rien pour l’instant. Touche « Ajouter » la prochaine fois qu’on te donne une information importante.')),
+    savoirCard(),
     h('section', { class: 'card' },
       h('h3', null, 'Contenu du Coffre'),
       Object.keys(bySrc).length ? h('ul', { class: 'kv' }, Object.entries(bySrc).map(([k, v]) => h('li', null, h('span', null, SRC_NAMES[k] || k), h('strong', null, v)))) : h('p', { class: 'muted' }, 'Le Coffre se remplit à chaque technique et chaque saisie « Ma vie ».'),
@@ -407,15 +411,85 @@ function mavieRow(i) {
     } }, '🗑'));
 }
 
+// Le Savoir du jour se révise thème par thème (les capitales d'Europe avant un quiz, par exemple).
 function freeReviewSheet() {
-  const srcs = [...new Set(Object.values(S.items).map((i) => i.src))];
-  if (!srcs.length) { toast('Le Coffre est vide pour l’instant.'); return; }
+  const srcs = [...new Set(Object.values(S.items).map((i) => i.src))].filter((s) => s !== 'culture');
+  const themes = THEMES.filter((t) => cultureItems(t.id).length);
+  if (!srcs.length && !themes.length) { toast('Le Coffre est vide pour l’instant.'); return; }
   sheet({
     title: 'Révision libre',
     text: 'Revoir un thème avant un rendez-vous, sans attendre la date prévue. Ça ne compte pas pour la série et rapporte peu de points.',
-    buttons: [...srcs.map((s) => ({ label: SRC_NAMES[s] || s, value: s })), { label: 'Annuler', value: null }],
-  }).then((s) => { if (s) runFreeReview(s); });
+    buttons: [...srcs.map((s) => ({ label: SRC_NAMES[s] || s, value: s })), ...themes.map((t) => ({ label: `${t.icon} ${t.name}`, value: `culture:${t.id}` })), { label: 'Annuler', value: null }],
+  }).then((s) => {
+    if (!s) return;
+    if (s.startsWith('culture:')) runFreeReview('culture', s.slice('culture:'.length));
+    else runFreeReview(s);
+  });
 }
+
+// --- Savoir du jour -------------------------------------------------------------------
+
+function savoirCard() {
+  const st = savoirStatus();
+  const stats = themeStats().filter((t) => t.on || t.learned);
+  const learned = stats.reduce((a, t) => a + t.learned, 0);
+  const ret = retention7(30, { culture: true });
+  return h('section', { class: 'card' },
+    h('div', { class: 'card-head' }, h('h3', null, '📚 Savoir du jour'), h('button', { class: 'btn secondary small', onclick: themesSheet }, 'Thèmes')),
+    h('p', { class: 'muted small' }, st.ready ? `${plural(S.culture.perDay, 'nouvelle fiche', 'nouvelles fiches')} d’histoire-géo t’attendent aujourd’hui.` : STATUS_TEXT[st.reason]),
+    st.ready && h('button', { class: 'btn primary block', onclick: runSavoir }, 'Apprendre les fiches du jour'),
+    stats.length ? h('ul', { class: 'kv' }, stats.map((t) => h('li', null, h('span', null, `${t.icon} ${t.name}`), h('strong', null, `${t.learned} / ${t.total}`)))) : null,
+    h('p', { class: 'muted small' }, `${plural(learned, 'fiche apprise', 'fiches apprises')}. Rétention à 7 jours : ${ret.rate == null ? 'pas encore assez de recul' : `${Math.round(ret.rate * 100)} % sur ${plural(ret.n, 'rappel')}`}. Elle est comptée à part, pour ne pas changer ta rétention principale.`));
+}
+
+// Réglages du Savoir du jour : activer, rythme, thématiques. Se redessine après chaque action.
+function savoirBlock() {
+  const box = h('div', { class: 'stack' });
+  const draw = () => {
+    const C = S.culture;
+    const removable = THEMES.filter((t) => !themeOn(t.id) && cultureItems(t.id).length);
+    box.replaceChildren(...[
+      h('label', { class: 'check-row' },
+        h('input', { type: 'checkbox', checked: C.on, onchange: (e) => { C.on = e.target.checked; save(); draw(); } }),
+        h('span', null, h('strong', null, 'Recevoir des fiches chaque jour'), h('br'), h('small', { class: 'muted' }, 'Quelques fiches d’histoire-géo juste après le Coffre, environ 2 minutes.'))),
+      C.on && h('label', { class: 'field' }, h('span', null, 'Nouvelles fiches par jour'),
+        h('select', { onchange: (e) => { C.perDay = Number(e.target.value); save(); } }, [[2, '2'], [3, '3 (recommandé)'], [5, '5']].map(([v, l]) => h('option', { value: v, selected: v === C.perDay }, l)))),
+      h('p', { class: 'muted small' }, 'Tes thèmes : touche-en un pour le retirer ou le remettre. Ils décident aussi des textes d’histoire-géo de Lecture active et des listes à ranger dans ton palais.'),
+      themeChips(draw),
+      h('p', { class: 'muted small' }, 'Retirer un thème arrête ses nouvelles fiches. Celles déjà apprises continuent de revenir dans le Coffre, sinon tu les oublierais.'),
+      removable.map((t) => h('button', { class: 'btn ghost small', onclick: async () => {
+        const n = cultureItems(t.id).length;
+        if (!await sheet({ title: `Retirer « ${t.name} » du Coffre ?`, text: `${plural(n, 'élément')} ne te ${n > 1 ? 'seront' : 'sera'} plus redemandé${n > 1 ? 's' : ''}. Si tu recoches ce thème plus tard, ses fiches repartiront de zéro.`, buttons: [{ label: 'Retirer', value: true, kind: 'danger' }, { label: 'Annuler', value: false }] })) return;
+        removeTheme(t.id);
+        toast('Retiré du Coffre.', 'ok');
+        draw();
+      } }, `🗑 Retirer du Coffre ce que j’ai appris en « ${t.name} »`)),
+    ].flat().filter(Boolean));
+  };
+  draw();
+  return box;
+}
+
+function themesSheet() {
+  sheet({ title: '📚 Savoir du jour', body: savoirBlock(), buttons: [{ label: 'OK', value: true, kind: 'primary' }] }).then(render);
+}
+
+// Listes toutes prêtes à ranger dans un palais, selon les thèmes cochés.
+function presetListSheet() {
+  const stored = new Set(cultureItems().filter((i) => i.type === 'list').map((i) => i.prompt));
+  const lists = LISTS.filter((l) => themeOn(l.theme) && !stored.has(l.title));
+  if (!lists.length) { toast(LISTS.some((l) => themeOn(l.theme)) ? 'Tu as déjà rangé toutes les listes de tes thèmes. 🎉' : 'Coche un thème d’histoire-géo dans les Réglages pour voir les listes.'); return; }
+  sheet({
+    title: '📚 Une liste à apprendre',
+    text: 'Des listes dans l’ordre, toutes prêtes, à ranger dans ton palais. Le Coffre te les redemande ce soir, puis juste avant l’oubli.',
+    buttons: [...lists.map((l) => ({ label: `${THEME_BY_ID[l.theme].icon} ${l.title} (${l.items.length})`, value: l.id })), { label: 'Annuler', value: null }],
+  }).then((id) => {
+    const l = LISTS.find((x) => x.id === id);
+    if (l) runPalaceStore({ title: l.title, items: l.items, cat: 'savoir', src: 'culture', theme: l.theme });
+  });
+}
+
+const SAVOIR_TAG = { done: '✓ fait aujourd’hui', off: 'désactivé', empty: 'tout appris', backlog: 'en pause : le Coffre d’abord' };
 
 // --- Jeux ---------------------------------------------------------------------------
 
@@ -443,6 +517,12 @@ function jeuxView() {
   return h('div', null,
     skyHeader('Jeux', 'Chaque technique se termine par un rappel, et tout ce que tu apprends revient plus tard dans le Coffre. C’est cette boucle qui produit des résultats durables.'),
     h('section', { class: 'card game-card', onclick: () => go('coffre') }, h('span', { class: 'game-icon' }, '🗝️'), h('span', { class: 'game-main' }, h('strong', null, 'Le Coffre'), h('small', { class: 'muted' }, CATALOG.coffre.desc)), h('button', { class: 'icon-btn small', onclick: (e) => { e.stopPropagation(); gameInfo('coffre'); } }, 'ⓘ')),
+    (() => {
+      const st = savoirStatus();
+      return h('section', { class: 'card game-card', onclick: runSavoir }, h('span', { class: 'game-icon' }, '📚'),
+        h('span', { class: 'game-main' }, h('strong', null, 'Savoir du jour'), h('small', { class: 'muted' }, CATALOG.savoir.desc), h('span', { class: 'tag' }, st.ready ? `${plural(S.culture.perDay, 'fiche')} aujourd’hui` : SAVOIR_TAG[st.reason])),
+        h('button', { class: 'icon-btn small', onclick: (e) => { e.stopPropagation(); gameInfo('savoir'); } }, 'ⓘ'));
+    })(),
     h('h2', { class: 'section-title' }, 'Techniques'),
     TECH_ORDER.map((tech) => {
       const id = TECHS[tech].game;
@@ -488,10 +568,12 @@ function jeuxView() {
       S.palaces.length ? h('ul', { class: 'legend' },
         h('li', null, h('strong', null, 'Remplir'), ' : t’entraîner avec des mots au hasard.'),
         h('li', null, h('strong', null, 'Ranger une liste'), ' : y mettre ce que tu dois vraiment retenir (courses, points d’une réunion). Le Coffre te le redemande ce soir.'),
+        h('li', null, h('strong', null, 'Une liste d’histoire-géo'), ' : les rois, les présidents, les fleuves… toutes prêtes à ranger.'),
         h('li', null, h('strong', null, 'Touche un palais'), ' pour voir ce qui y est rangé, et vider une pièce quand la liste ne sert plus.')) : null,
       h('div', { class: 'row wrap' },
         h('button', { class: 'btn secondary', onclick: runPalaceBuilder }, '+ Construire un palais'),
-        S.palaces.length ? h('button', { class: 'btn secondary', onclick: () => openCapture('liste') }, '🛒 Ranger une liste') : null)),
+        S.palaces.length ? h('button', { class: 'btn secondary', onclick: () => openCapture('liste') }, '🛒 Ranger une liste') : null,
+        h('button', { class: 'btn secondary', onclick: presetListSheet }, '📚 Une liste d’histoire-géo'))),
   );
 }
 
@@ -757,6 +839,8 @@ function openSettings() {
     h('label', { class: 'field' }, h('span', null, 'Rétention visée'), select(P.retention, [[0.8, '80 % (moins de révisions)'], [0.85, '85 %'], [0.9, '90 % (recommandé)'], [0.95, '95 % (beaucoup de révisions)']], (v) => { P.retention = Number(v); save(); })),
     h('label', { class: 'field' }, h('span', null, 'Plafond de révisions par jour'), select(P.reviewCap, [[15, '15'], [20, '20'], [30, '30 (recommandé)'], [45, '45'], [60, '60']], (v) => { P.reviewCap = Number(v); save(); })),
     h('label', { class: 'field' }, h('span', null, "Langue de « Mots d'ailleurs »"), select(P.language, Object.entries(LANGUAGES).map(([k, l]) => [k, `${l.flag} ${l.name}`]), (v) => { P.language = v; save(); })),
+    h('h3', null, 'Savoir du jour'),
+    savoirBlock(),
     h('h3', null, 'Sauvegarde'),
     h('p', { class: 'muted small' }, `${account ? 'Tes données sont aussi copiées sur ton compte.' : 'Tes données restent sur cet appareil.'} ${S.lastBackup ? `Dernière sauvegarde : ${fmtDay(dayKey(S.lastBackup), { day: 'numeric', month: 'long' })}.` : 'Aucune sauvegarde pour l’instant.'}`),
     h('div', { class: 'row wrap' }, h('button', { class: 'btn secondary', onclick: exportBackup }, '💾 Exporter'), h('button', { class: 'btn secondary', onclick: () => fileIn.click() }, '📂 Importer'), fileIn),

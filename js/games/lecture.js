@@ -7,9 +7,11 @@ import { levelInfo, startBatch, createItem, award } from '../core/engine.js';
 import { intro, recallBreak, resultScreen } from './common.js';
 
 function pickText() {
+  // Les textes d'histoire-géo suivent les thèmes cochés du Savoir du jour.
+  const pool = TEXTS.filter((t) => !t.theme || !S.culture.off.includes(t.theme));
   let used = S.usedPools.texts || [];
-  let free = TEXTS.filter((t) => !used.includes(t.id));
-  if (!free.length) { used = []; free = TEXTS; }
+  let free = pool.filter((t) => !used.includes(t.id));
+  if (!free.length) { used = []; free = pool; }
   const t = shuffle(free)[0];
   S.usedPools.texts = [...used, t.id];
   save();

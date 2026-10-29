@@ -182,7 +182,24 @@ export function lev(a, b) {
 
 const tolerance = (len) => (len >= 9 ? 2 : len >= 5 ? 1 : 0);
 
+// Les nombres d'une réponse, chiffres romains compris (Louis XIV, XVIIIe, François Ier).
+const ROMAN = { i: 1, v: 5, x: 10, l: 50, c: 100 };
+const roman = (w) => [...w].reduce((n, ch, i) => n + (ROMAN[ch] < (ROMAN[w[i + 1]] || 0) ? -ROMAN[ch] : ROMAN[ch]), 0);
+// Côté réponse attendue, seuls les chiffres romains écrits en majuscules comptent.
+const EXPECTED_ROMAN = /(?<![\p{L}\d])([IVXLC]+)(?:er|e|ème)?(?![\p{L}\d’'])/gu;
+function expectedNumbers(s) {
+  return [...(String(s).match(/\d+/g) || []).map(Number), ...[...String(s).matchAll(EXPECTED_ROMAN)].map((m) => roman(m[1].toLowerCase()))];
+}
+// Mots tapés, chiffres détachés des lettres (« 15h » → « 15 h », « 18ème » → « 18 »).
+const typedWords = (s) => norm(s).replace(/(\d+)(?:er|ere|eme|e)\b/g, '$1').replace(/\d+/g, ' $& ').split(' ').filter(Boolean);
+function numberOf(w) {
+  if (/^\d+$/.test(w)) return Number(w);
+  const m = w.match(/^([ivxlc]+)(?:er|ere|eme|e)?$/);
+  return m ? roman(m[1]) : null;
+}
+
 // Compare une réponse libre à la réponse attendue (alternatives séparées par « | »).
+// Un nombre ne tolère aucune faute : Louis XV n'est pas Louis XIV, 15 h n'est pas 16 h.
 export function matchAnswer(user, expected) {
   const alts = String(expected).split('|').map((s) => s.trim()).filter(Boolean);
   for (const alt of alts) {
@@ -192,9 +209,19 @@ export function matchAnswer(user, expected) {
       if (digitsOf(user) === expDigits) return true;
       continue;
     }
-    const a = core(user), b = core(alt);
+    let a = core(user), b = core(alt);
+    const need = expectedNumbers(alt);
+    if (need.length) {
+      // Les nombres doivent tous y être ; le reste se compare ensuite, avec la tolérance habituelle.
+      const words = typedWords(user);
+      if (!need.every((x) => words.some((w) => numberOf(w) === x))) continue;
+      b = core(alt.replace(EXPECTED_ROMAN, ' ').replace(/\d+/g, ' '));
+      if (!b) return true;
+      a = core(words.filter((w) => !need.includes(numberOf(w))).join(' '));
+    }
+    if (norm(user) === norm(alt)) return true;
     if (!a) continue;
-    if (a === b || norm(user) === norm(alt)) return true;
+    if (a === b) return true;
     if (lev(a, b) <= tolerance(b.length)) return true;
     const at = new Set(a.split(' '));
     if (b && b.split(' ').every((w) => at.has(w) || [...at].some((x) => lev(x, w) <= tolerance(w.length)))) return true;
