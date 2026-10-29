@@ -760,8 +760,8 @@ details.why p, details.why ul { margin-top: 8px; }
 }
 .co-owl { width: min(270px, 70vw); margin: 4px 0 2px; animation: co-rise 0.75s cubic-bezier(0.3, 1.45, 0.55, 1) backwards; }
 .co-owl svg { display: block; width: 100%; height: auto; overflow: visible; transform-origin: 50% 92%; animation: co-sway 2.4s ease-in-out 1.3s infinite; }
-.co-owl g, .co-owl path { transform-box: fill-box; }
-.co-arm { transform-origin: 0% 100%; animation: co-arm 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) 0.5s backwards; }
+.co-arm, .co-thumb, .co-flap, .co-grin, .co-wink, .co-spark { transform-box: fill-box; }
+.co-arm { transform-origin: 12% 75%; animation: co-arm 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) 0.5s backwards; }
 .co-thumb { transform-origin: 50% 80%; animation: co-pump 1.8s var(--ease-out) 1.05s infinite; }
 .co-flap { transform-origin: 50% 0%; animation: co-flap 0.45s ease-in-out 0.6s 3; }
 .co-grin { transform-origin: 50% 0%; animation: co-grin 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) 0.55s backwards; }
@@ -786,9 +786,9 @@ details.why p, details.why ul { margin-top: 8px; }
   80% { transform: translateY(4px) scale(1.08, 0.92); }
 }
 @keyframes co-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg) translateY(-4px); } }
-@keyframes co-arm { from { transform: rotate(130deg) scale(0.7); } }
+@keyframes co-arm { from { transform: rotate(110deg) scale(0.7); } }
 @keyframes co-pump { 0%, 40%, 100% { transform: none; } 12% { transform: scale(1.28) rotate(-8deg); } 24% { transform: scale(0.96); } }
-@keyframes co-flap { 50% { transform: rotate(-28deg); } }
+@keyframes co-flap { 50% { transform: rotate(30deg); } }
 @keyframes co-grin { from { transform: scale(0.2, 0.1); } }
 @keyframes co-wink { 0%, 6%, 34%, 100% { transform: none; } 10%, 30% { transform: scaleY(0); } }
 @keyframes co-closed { 0%, 7%, 33%, 100% { opacity: 0; } 10%, 30% { opacity: 1; } }
