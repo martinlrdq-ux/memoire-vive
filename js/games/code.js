@@ -2,8 +2,8 @@
 import { h, screen, input, onEnter, digitScore, textarea } from '../core/ui.js';
 import { S, save, pick } from '../core/store.js';
 import { NAMES_F, NAMES_M } from '../data/people.js';
-import { MAJOR_SOUNDS, majorWords } from '../data/major.js';
-import { levelInfo, startBatch, createItem, recordReview } from '../core/engine.js';
+import { MAJOR_SOUNDS, MAJOR_ORDER, majorWords, majorLearned } from '../data/major.js';
+import { levelInfo, startBatch, createItem, recordReview, techUnlocked } from '../core/engine.js';
 import { intro, recallBreak, resultScreen, gradeFor } from './common.js';
 
 const CONTEXTS = [
@@ -111,7 +111,10 @@ export async function play(ctx) {
   const item = createItem({ type: 'code', src: 'digits', prompt: context, answer: digits, hint, batch });
   const g = score === 1 ? 3 : score >= 0.8 ? 2 : 1;
   const r = recordReview(item, g, { score, ctx: 'i', annex: ctx.annex });
-  await resultScreen(stage, { score, pts: r.pts, body: h('div', null, h('div', { class: 'big-digits mono' }, digits.replace(/(\d{2})(?=\d)/g, '$1 ')), h('p', { class: 'muted' }, `Tu as écrit : ${ans || '—'}`), h('p', { class: 'hint' }, hint)) });
+  // « Mes 100 images » s'ouvre avec le chapitre des chiffres.
+  const learnMore = mode === 'major' && techUnlocked('digits') && majorLearned().size < MAJOR_ORDER.length;
+  await resultScreen(stage, { score, pts: r.pts, body: h('div', null, h('div', { class: 'big-digits mono' }, digits.replace(/(\d{2})(?=\d)/g, '$1 ')), h('p', { class: 'muted' }, `Tu as écrit : ${ans || '—'}`), h('p', { class: 'hint' }, hint),
+    learnMore && h('p', { class: 'tip' }, '💡 Pour aller plus vite : apprends tes images par cœur, 10 par jour, dans Jeux › Exercices annexes › « Mes 100 images ».')) });
   return { score };
 }
 

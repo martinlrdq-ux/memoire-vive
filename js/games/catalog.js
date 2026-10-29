@@ -27,7 +27,7 @@ export const CATALOG = {
     desc: 'Retiens des prénoms et des métiers avec une stratégie en trois étapes.',
     why: 'Une stratégie en trois étapes (un trait du visage, le prénom transformé en image, un lien entre les deux) fait mieux retenir les prénoms que de simples répétitions, avec un effet encore présent un mois plus tard.',
     hard: 'Les prénoms sont abstraits : ils ne veulent rien dire en soi. C’est justement pour ça qu’il faut les transformer en image. Une image un peu ridicule marche très bien.',
-    steps: ['Repère un trait marquant du visage.', 'Transforme le prénom en image (Paul → une poule, Léa → un lion).', 'Relie les deux : la poule picore ses grosses lunettes.'],
+    steps: ['Repère un trait marquant du visage.', 'Transforme le prénom en image (Paul → une poule, Léa → un lion).', 'Relie les deux : la poule picore ses grosses lunettes.', 'Pas d’image qui vient ? Pense à quelqu’un que tu connais qui porte le même prénom, et imagine-les côte à côte.', 'En vrai, redis le prénom tout de suite (« Enchanté, Margaux ») et glisse-le dans la conversation.'],
   },
   mots: {
     name: "Mots d'ailleurs", icon: '🌍', tech: 'vocab', kind: 'main', memory: 'Sémantique',
@@ -62,7 +62,7 @@ export const CATALOG = {
     desc: 'Mémorise la place des objets dans une scène, puis replace-les.',
     why: 'La mémoire des lieux et des objets est celle qu’on sollicite pour retrouver ses clés ou se repérer. Changer de scène d’une manche à l’autre (l’entrelacement) aide pour ce type de mémoire.',
     hard: 'La difficulté s’adapte pour que tu réussisses environ trois manches sur quatre : assez dur pour progresser, assez facile pour continuer.',
-    steps: ['Observe la scène.', 'Elle s’efface.', 'Replace chaque objet à sa place.'],
+    steps: ['Observe la scène.', 'Elle s’efface.', 'Replace chaque objet à sa place.', 'Dans la vraie vie : quand tu poses tes clés, dis-le à voix haute (« je pose les clés sur la table ») et imagine une image qui frappe, les clés qui font fondre la table.'],
   },
   lecture: {
     name: 'Lecture active', icon: '📖', tech: 'reading', kind: 'main', memory: 'Sémantique',
@@ -78,6 +78,13 @@ export const CATALOG = {
     hard: 'La difficulté monte dès que tu réussis, pour ne jamais rester trop facile.',
     steps: ['n-back : touche le bouton quand le carré s’allume au même endroit qu’il y a n coups.', 'Empan : retiens une suite de chiffres et retape-la.'],
   },
+  images: {
+    name: 'Mes 100 images', icon: '🔟', tech: null, kind: 'annex', memory: 'Associative, chiffres',
+    desc: 'Le mot-image de chaque nombre de 0 à 99, appris par cœur, 10 par jour.',
+    why: 'Le système majeur ne devient rapide que si l’image de chaque nombre vient toute seule : 47, c’est un roc, sans réfléchir. C’est ce que font les champions de mémoire : ils apprennent leur liste une fois, puis la révisent. Ensuite, un numéro ou une date devient une petite scène en quelques secondes.',
+    hard: 'Les premiers lots demandent de regarder la table des sons. Au bout de quelques jours, tu reconnais les sons sans y penser, et chaque lot va plus vite.',
+    steps: ['Regarde le nombre et ses sons : 4 → r, 7 → k.', 'Garde le mot proposé (« roc ») ou choisis le tien, avec les mêmes sons.', 'Vois l’image quelques secondes, puis retrouve chaque mot sans aide.'],
+  },
   message: {
     name: 'Message reçu', icon: '📞', tech: 'oral', kind: 'main', memory: 'Associative, oral',
     desc: 'Écoute un message, reformule-le, puis retrouve les informations.',
@@ -92,6 +99,7 @@ export const ANNEXES = [
   { id: 'ouestil', name: 'Où est-il ?', icon: '📍', desc: 'La place des objets dans une scène.', chapter: 1 },
   { id: 'libre', name: 'Révision libre du Coffre', icon: '🗂️', desc: 'Revoir un thème précis avant un rendez-vous.', chapter: 0 },
   { id: 'weekend', name: 'Défi du week-end', icon: '🗓️', desc: 'Une liste plus longue, à restituer lundi.', chapter: 1, weekend: true },
+  { id: 'images', name: 'Mes 100 images', icon: '🔟', desc: 'Le code des chiffres appris par cœur, 10 par jour.', chapter: 3 },
   { id: 'chrono', name: 'Défi chrono du palais', icon: '⏱️', desc: 'Remplis ton palais le plus vite possible.', chapter: 5 },
   { id: 'message-dur', name: 'Message reçu, mode difficile', icon: '📻', desc: 'Messages plus longs, bruit de fond, débit rapide.', chapter: 6 },
 ];

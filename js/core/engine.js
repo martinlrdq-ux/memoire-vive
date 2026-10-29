@@ -25,7 +25,7 @@ export const CHAPTERS = [
     life: 'Retiens ta prochaine liste de courses avec une histoire, sans la noter.' },
   { title: 'Les visages', techs: ['names'], test: ['names'], district: 'visages',
     goal: 'Qui est-ce ? : deux rappels du lendemain à 80 % ou plus avec 3 visages.',
-    life: 'Retiens trois prénoms de personnes rencontrées cette semaine et saisis-les dans « Ma vie ».' },
+    life: 'Retiens trois prénoms de personnes rencontrées cette semaine : redis chaque prénom tout de suite (« Enchanté, Margaux »), relie-le à une image, puis saisis-le dans « Ma vie ».' },
   { title: 'Les chiffres', techs: ['digits'], test: ['digits'], district: 'chiffres',
     goal: 'Code secret : deux rappels du lendemain à 80 % ou plus avec 6 chiffres.',
     life: 'Retiens un vrai numéro (code, téléphone, plaque) et ajoute-le à « Ma vie ».' },
@@ -50,7 +50,7 @@ export const DISTRICTS = {
   port: { name: 'Le Port des Messages', color: '#3fa7b5', chapter: 5 },
   bibliotheque: { name: 'La Bibliothèque', color: '#c9733a', chapter: 6 },
 };
-const SRC_DISTRICT = { mavie: 'place', weekend: 'place', story: 'ateliers', sketch: 'ateliers', names: 'visages', digits: 'chiffres', palace: 'palais', oral: 'port', reading: 'bibliotheque', vocab: 'bibliotheque' };
+const SRC_DISTRICT = { mavie: 'place', weekend: 'place', story: 'ateliers', sketch: 'ateliers', names: 'visages', digits: 'chiffres', palace: 'palais', oral: 'port', reading: 'bibliotheque', vocab: 'bibliotheque', major: 'chiffres' };
 export const districtOf = (src) => SRC_DISTRICT[src] || 'place';
 
 export const RANKS = [

@@ -89,6 +89,7 @@ function defaultState() {
     palaces: [],
     palaceStats: {}, // palais → « pièce|lieu » → { ok, ko } aux rappels
     culture: { on: true, perDay: 3, off: [], day: null, turn: 0 }, // Savoir du jour : thématiques décochées dans off
+    major: { words: {}, day: null }, // Mes 100 images : mots choisis à la place de ceux proposés, jour du dernier lot
     records: {},
     lastBackup: null,
     lastPlayed: {},

@@ -12,6 +12,7 @@ import {
   weekendAvailable, startTechnique, sessionSteps, techLabel, runPalaceBuilder, runPalaceStore, runPalaceView, runSavoir,
 } from './session.js';
 import { savoirStatus, STATUS_TEXT, themeStats, themeChips, themeOn, removeTheme, cultureItems } from './games/savoir.js';
+import { imagesTag } from './games/images.js';
 import { THEMES, THEME_BY_ID, LISTS } from './data/culture.js';
 import { delayedReady } from './games/bilan.js';
 import { editPalace, fillSize, palaceGuide, storedLists } from './games/palais.js';
@@ -35,7 +36,7 @@ const TABS = [
   ['progres', 'Progrès', tabIcon('<rect x="4.5" y="14" width="4" height="6" rx="1"/><rect x="10" y="9.5" width="4" height="10.5" rx="1"/><rect x="15.5" y="4.5" width="4" height="15.5" rx="1"/>')],
 ];
 const STEP_INFO = { warmup: ['〰️', 'Échauffement'], coffre: ['🗝️', 'Le Coffre'], savoir: ['📚', 'Savoir du jour'], technique: ['✨', 'Technique'], bilan: ['🌙', 'Bilan du jour'] };
-const SRC_NAMES = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end', culture: 'Savoir du jour' };
+const SRC_NAMES = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end', culture: 'Savoir du jour', major: 'Mes 100 images' };
 const TECH_ORDER = ['story', 'sketch', 'names', 'digits', 'palace', 'oral', 'reading', 'vocab'];
 
 let swReg = null; // service worker (mises à jour)
@@ -312,13 +313,13 @@ function checkinCard() {
 // --- Saisie « Ma vie » -----------------------------------------------------------
 
 const CATS = [
-  { id: 'prenom', icon: '👤', label: 'Un prénom', q: 'Qui est-ce ?', qph: 'La sœur de Julie, rencontrée au dîner', a: 'Son prénom', aph: 'Margaux', tip: 'Trouve un trait marquant, transforme le prénom en image et relie les deux.', prefix: 'Prénom : ' },
+  { id: 'prenom', icon: '👤', label: 'Un prénom', q: 'Qui est-ce ?', qph: 'La sœur de Julie, rencontrée au dîner', a: 'Son prénom', aph: 'Margaux', tip: 'Redis-le tout de suite (« Enchanté, Margaux »). Puis trouve un trait marquant et transforme le prénom en image, ou pense à une autre Margaux que tu connais et imagine-les côte à côte.', prefix: 'Prénom : ' },
   { id: 'chiffre', icon: '🔢', label: 'Un numéro', q: 'C’est le numéro de quoi ?', qph: 'Le code du portail de Paul', a: 'Les chiffres', aph: '4721', numeric: true, tip: 'Découpe en blocs de deux et donne un sens à chaque bloc (une date, un âge…).' },
   { id: 'rdv', icon: '📅', label: 'Un rendez-vous', q: 'Avec qui, pour quoi ?', qph: 'Le dentiste', a: 'Quand et où ?', aph: 'jeudi 15 h, 12 rue des Lilas', tip: 'Reformule-le à voix haute (« donc jeudi 15 h… »), puis imagine la scène. Et note-le aussi dans ton agenda : c’est l’aide la plus fiable.' },
   { id: 'consigne', icon: '📝', label: 'Une consigne', q: 'Quelle consigne ?', qph: 'Ce que Claire m’a demandé pour le dossier', a: 'Son contenu', aph: 'envoyer le devis signé avant vendredi', tip: 'Fais-en une courte histoire. Si c’est à faire plus tard, mets aussi un rappel dans ton téléphone.' },
   { id: 'liste', icon: '🛒', label: 'Une liste', q: 'Quelle liste ?', qph: 'Les courses de samedi', a: 'Les éléments, séparés par des virgules', aph: 'farine, œufs, citrons', list: true, palace: true, tip: 'Range-la dans ton palais : chaque élément devient une image posée sur un meuble de ton logement. Ou relie les éléments en une petite histoire.' },
   { id: 'parole', icon: '🎤', label: 'Une prise de parole', q: 'Pour quelle occasion ?', qph: 'La réunion de lundi avec Claire', a: 'Tes points clés, dans l’ordre, en un ou deux mots chacun', aph: 'budget, planning, recrutement', list: true, ordered: true, palace: true, tip: 'Range-la dans ton palais : chaque point devient une image posée sur un meuble. Le jour J, tu refais le tour dans ta tête et tu parles sans notes, comme les orateurs romains.' },
-  { id: 'citation', icon: '💬', label: 'Une phrase', q: 'Qui l’a dit, à quel propos ?', qph: 'Le conseil de mon grand-père', a: 'La phrase', aph: '…', tip: 'Relie-la à un souvenir personnel : ce qui te concerne s’ancre mieux.' },
+  { id: 'citation', icon: '💬', label: 'Une phrase', q: 'Qui l’a dit, à quel propos ?', qph: 'Le conseil de mon grand-père', a: 'La phrase', aph: '…', tip: 'Choisis 3 ou 4 mots-clés et fais de chacun une image (posée sur ton palais du corps, par exemple), puis relis la phrase deux ou trois fois : les images ramènent le reste. Relie-la aussi à un souvenir à toi.' },
   { id: 'autre', icon: '✳️', label: 'Autre chose', q: 'La question que tu te poseras', qph: 'Le restaurant conseillé par Léo', a: 'La réponse', aph: '…', tip: 'Relie l’information à toi : où l’as-tu entendue, qu’est-ce qu’elle t’évoque ?' },
 ];
 
@@ -546,10 +547,11 @@ function jeuxView() {
         if (a.id === 'weekend') return runWeekend();
         if (a.id === 'chrono') return playGame('palais', { title: 'Défi chrono', chrono: true, size: levelInfo('palace').size });
         if (a.id === 'message-dur') return playGame('message', { title: 'Message reçu', hard: true });
+        if (a.id === 'images') return playGame('images', { title: 'Mes 100 images' });
       };
       return h('section', { class: `card game-card ${open ? '' : 'locked'}`, onclick: run },
         h('span', { class: 'game-icon' }, open ? a.icon : '🔒'),
-        h('span', { class: 'game-main' }, h('strong', null, a.name), h('small', { class: 'muted' }, a.desc), a.weekend && open ? h('small', { class: 'muted' }, weekendAvailable() ? 'Disponible ce week-end' : 'Samedi et dimanche') : null),
+        h('span', { class: 'game-main' }, h('strong', null, a.name), h('small', { class: 'muted' }, a.desc), a.weekend && open ? h('small', { class: 'muted' }, weekendAvailable() ? 'Disponible ce week-end' : 'Samedi et dimanche') : null, a.id === 'images' && open ? h('span', { class: 'tag' }, imagesTag()) : null),
         CATALOG[a.id] && h('button', { class: 'icon-btn small', onclick: (e) => { e.stopPropagation(); gameInfo(a.id); } }, 'ⓘ'));
     }),
     h('h2', { class: 'section-title' }, 'Mes palais'),

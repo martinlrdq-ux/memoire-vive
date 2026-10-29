@@ -17,8 +17,9 @@ import * as message from './games/message.js';
 import * as ouestil from './games/ouestil.js';
 import * as echo from './games/echo.js';
 import * as savoir from './games/savoir.js';
+import * as images from './games/images.js';
 
-export const GAMES = { filrouge, croquis, quiestce, code, palais, mots, lecture, message, ouestil, echo, savoir };
+export const GAMES = { filrouge, croquis, quiestce, code, palais, mots, lecture, message, ouestil, echo, savoir, images };
 
 let refresh = () => {};
 export function onRefresh(fn) { refresh = fn; }

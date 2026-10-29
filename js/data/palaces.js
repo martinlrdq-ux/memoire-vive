@@ -1,9 +1,16 @@
 // Palais virtuels prêts à l'emploi : 4 pièces de 13 lieux, soit 52 lieux par palais.
 // Un décor virtuel exploré quelques minutes sert aussi bien qu'un lieu réel (Legge et al., 2012).
+// Plus un palais de poche : le corps, 10 lieux qu'on a toujours sur soi (la « Body Method » de Kevin Horsley).
 
 const room = (name, loci) => ({ name, loci: loci.split(';').map((s) => { const [e, ...l] = s.trim().split(' '); return { e, l: l.join(' ') }; }) });
 
 export const VIRTUAL_PALACES = [
+  {
+    id: 'corps', name: 'Ton corps', icon: '🧍', pocket: true,
+    rooms: [
+      room('Des pieds à la tête', '🦶 Pieds; 🦵 Genoux; 🩳 Cuisses; 👖 Ceinture; 🎽 Ventre; 🤚 Main gauche; ✋ Main droite; 👄 Bouche; 👃 Nez; 🧢 Sommet du crâne'),
+    ],
+  },
   {
     id: 'maison', name: 'La maison de famille', icon: '🏡',
     rooms: [

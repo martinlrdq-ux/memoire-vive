@@ -1,5 +1,5 @@
 // Généré par tools/build_sw.py : ne pas modifier à la main.
-const VERSION = 'afffdd2326';
+const VERSION = '04ad6c4545';
 const CACHE = `memoire-${VERSION}`;
 const ASSETS = [
   './',
@@ -41,6 +41,7 @@ const ASSETS = [
   'js/games/croquis.js',
   'js/games/echo.js',
   'js/games/filrouge.js',
+  'js/games/images.js',
   'js/games/lecture.js',
   'js/games/message.js',
   'js/games/mots.js',

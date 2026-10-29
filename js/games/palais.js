@@ -32,11 +32,14 @@ export function guideBody() {
         h('li', null, 'Quand tu dois parler sans notes : une réunion, un oral, un discours.'),
         h('li', null, 'Quand tu veux savoir quelque chose par cœur.')),
       h('p', { class: 'muted' }, 'Une liste que tu peux noter sur ton téléphone ? Garde le téléphone, c’est très bien aussi.')),
+    block('🧍 Ton palais de poche',
+      h('p', null, 'Ton corps est un palais tout prêt, que tu as toujours sur toi : pieds, genoux, cuisses, ceinture, ventre, main gauche, main droite, bouche, nez, sommet du crâne. Parfait pour 10 choses à retenir sur le moment.'),
+      h('p', null, 'Exemple : du pain qui pousse sous tes pieds, du lait qui coule de tes genoux…')),
     block('🪜 Dans Kikory, 3 étapes',
       h('ol', null,
         h('li', null, h('strong', null, 'Construire ton palais'), ' (une seule fois, 2 minutes) : l’app te fait faire le tour de ton logement et tu notes 10 à 20 endroits dans l’ordre.'),
         h('li', null, h('strong', null, 'T’entraîner avec « Remplir »'), ' : l’app pose des mots au hasard dans ton palais. C’est pour prendre le coup de main.'),
-        h('li', null, h('strong', null, 'T’en servir avec « Ranger une liste »'), ' : tu y ranges ce que tu dois vraiment retenir (des courses, les points d’une réunion). Le soir même, l’app te le redemande.'),
+        h('li', null, h('strong', null, 'T’en servir avec « Ranger une liste »'), ' : tu y ranges ce que tu dois vraiment retenir (des courses, les points d’une réunion). Le soir même, l’app te le redemande, puis de temps en temps dans le désordre, pour vérifier chaque lieu.'),
         h('li', null, h('strong', null, 'Vider la pièce'), ' quand la liste ne sert plus (les courses sont faites) : la place est libre pour la suivante. Touche ton palais dans « Mes palais » pour voir ce qui y est rangé.'))),
     block('💡 Une bonne image',
       h('ul', null,
@@ -244,7 +247,7 @@ async function choosePalace(stage, n, { title = 'Choisis ton palais' } = {}) {
         const count = lociOf(p).length;
         const enough = count >= n;
         return h('button', { class: `palace-card ${S.records.lastPalace === p.id ? 'last' : ''}`, disabled: !enough, onclick: () => done(p) },
-          h('span', { class: 'palace-icon' }, p.icon), h('span', null, h('strong', null, p.name), h('br'), h('small', { class: 'muted' }, enough ? `${count} lieux` : `${count} lieux, pas assez`)));
+          h('span', { class: 'palace-icon' }, p.icon), h('span', null, h('strong', null, p.name), h('br'), h('small', { class: 'muted' }, `${count} lieux${enough ? '' : ', pas assez'}${p.pocket ? ' · toujours sur toi' : ''}`)));
       })),
       h('button', { class: 'btn secondary', onclick: () => done('new') }, '+ Construire mon propre palais')));
     if (choice !== 'new') { S.records.lastPalace = choice.id; save(); return choice; }

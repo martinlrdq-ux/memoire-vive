@@ -4,6 +4,7 @@ import { S, save, sample, shuffle } from '../core/store.js';
 import { SCENES } from '../data/scenes.js';
 import { award } from '../core/engine.js';
 import { intro } from './common.js';
+import { CATALOG } from './catalog.js';
 
 const ROUNDS = 3;
 
@@ -81,6 +82,6 @@ export async function play(ctx) {
     award(score >= 0.85 ? 1 : 0, { annex: true });
   }
   const avg = total / ROUNDS;
-  await screen(stage, { icon: '📍', title: `${Math.round(avg * 100)} % en moyenne`, text: `Prochaine partie : ${S.ouestil.objects} objets. La difficulté s’ajuste pour que tu réussisses environ trois manches sur quatre.` });
+  await screen(stage, { icon: '📍', title: `${Math.round(avg * 100)} % en moyenne`, text: [`Prochaine partie : ${S.ouestil.objects} objets. La difficulté s’ajuste pour que tu réussisses environ trois manches sur quatre.`, `💡 ${CATALOG.ouestil.steps.at(-1)}`] });
   return { score: avg };
 }

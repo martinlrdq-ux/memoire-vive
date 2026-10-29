@@ -1,13 +1,13 @@
 // Le Coffre : révision en rappel libre, correction immédiate, note honnête.
 import { h, screen, input, onEnter, matchAnswer, digitScore, listScore, pointsPop, esc } from '../core/ui.js';
-import { dayKey, dayDiff } from '../core/store.js';
+import { dayKey, dayDiff, shuffle } from '../core/store.js';
 import { recordReview, recordLoci } from '../core/engine.js';
 import { faceSVG } from '../core/faces.js';
 import { speak } from '../core/speech.js';
 import { gradeFor, listResultView } from './common.js';
 import { THEME_BY_ID } from '../data/culture.js';
 
-const SRC_LABEL = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end', culture: 'Savoir du jour' };
+const SRC_LABEL = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end', culture: 'Savoir du jour', major: 'Mes 100 images' };
 
 function ageLabel(item) {
   const d = dayDiff(dayKey(item.created), dayKey());
@@ -131,15 +131,21 @@ function reviewCode(stage, item) {
   });
 }
 
+// Une révision sur deux à partir de la troisième, les lieux d'un palais arrivent dans le désordre :
+// on vérifie le lien entre chaque lieu et son image (« Qu'y a-t-il sur le frigo ? »), pas seulement l'enchaînement.
+// Les réponses restent rangées par lieu : la correction se lit ensuite dans l'ordre de la promenade.
 function reviewList(stage, item) {
   const { ordered, cues } = item.extra;
   const n = item.answer.length;
+  const jumbled = !!cues && n > 2 && (item.m.reps || 0) >= 2 && item.m.reps % 2 === 0;
   return stage.ask((done) => {
-    const wrap = h('div', { class: 'screen review' }, header(item), h('div', { class: 'prompt' }, item.prompt), h('p', { class: 'muted center' }, ordered ? `${n} éléments, dans l’ordre` : `${n} éléments, dans n’importe quel ordre`));
+    const subtitle = jumbled ? `${n} lieux, dans le désordre : va directement à chacun` : ordered ? `${n} éléments, dans l’ordre` : `${n} éléments, dans n’importe quel ordre`;
+    const wrap = h('div', { class: 'screen review' }, header(item), h('div', { class: 'prompt' }, item.prompt), h('p', { class: 'muted center' }, subtitle));
     const fields = Array.from({ length: n }, (_, i) => input({ placeholder: '…', 'aria-label': `Élément ${i + 1}` }));
-    fields.forEach((f, i) => onEnter(f, () => (fields[i + 1] ? fields[i + 1].focus() : f.blur())));
-    fields[0].setAttribute('data-autofocus', '');
-    const list = h('div', { class: 'recall-list' }, fields.map((f, i) => h('label', { class: 'recall-row' }, h('span', { class: 'recall-cue' }, cues ? h('span', null, h('span', { class: 'cue-emoji' }, cues[i].e), ' ', cues[i].l) : `${i + 1}.`), f)));
+    const shown = jumbled ? shuffle(fields.map((_, i) => i)) : fields.map((_, i) => i);
+    shown.forEach((i, k) => onEnter(fields[i], () => (k + 1 < n ? fields[shown[k + 1]].focus() : fields[i].blur())));
+    fields[shown[0]].setAttribute('data-autofocus', '');
+    const list = h('div', { class: 'recall-list' }, shown.map((i) => h('label', { class: 'recall-row' }, h('span', { class: 'recall-cue' }, cues ? h('span', null, h('span', { class: 'cue-emoji' }, cues[i].e), ' ', cues[i].l) : `${i + 1}.`), fields[i])));
     const feedback = h('div');
     const btn = h('button', { class: 'btn primary', onclick: () => {
       const answers = fields.map((f) => f.value);

@@ -1,4 +1,5 @@
-// Qui est-ce ? : la stratégie nom-visage en trois étapes (trait marquant, prénom en image, lien).
+// Qui est-ce ? : la stratégie nom-visage en trois étapes (trait marquant, prénom en image, lien),
+// plus, au choix, la comparaison avec quelqu'un qu'on connaît déjà sous ce prénom.
 import { h, input, onEnter, matchAnswer, toast } from '../core/ui.js';
 import { S, save, pick, shuffle } from '../core/store.js';
 import { NAMES_F, NAMES_M, JOBS } from '../data/people.js';
@@ -44,13 +45,15 @@ export async function play(ctx) {
       const fTrait = input({ placeholder: firstTime && i === 0 ? `ex. : ${EXAMPLE.trait}` : 'Ce qui frappe dans ce visage' });
       const fImage = input({ placeholder: firstTime && i === 0 ? `ex. : ${EXAMPLE.image}` : `${p.name} → une image` });
       const fLink = input({ placeholder: firstTime && i === 0 ? `ex. : ${EXAMPLE.link}` : 'Une scène qui relie les deux' });
+      const fKnown = input({ placeholder: 'ta cousine, un acteur… imagine-les côte à côte' });
       onEnter(fTrait, () => fImage.focus());
       onEnter(fImage, () => fLink.focus());
+      onEnter(fLink, () => fKnown.focus());
       const go = () => {
-        if (!fImage.value.trim() && !fLink.value.trim()) toast('Même une image rapide aide beaucoup.');
-        done({ trait: fTrait.value.trim(), image: fImage.value.trim(), link: fLink.value.trim() });
+        if (!fImage.value.trim() && !fLink.value.trim() && !fKnown.value.trim()) toast('Même une image rapide aide beaucoup.');
+        done({ trait: fTrait.value.trim(), image: fImage.value.trim(), link: fLink.value.trim(), known: fKnown.value.trim() });
       };
-      onEnter(fLink, go);
+      onEnter(fKnown, go);
       return h('div', { class: 'screen' },
         h('div', { class: 'muted center' }, `${i + 1} / ${n}`),
         h('div', { class: 'face', html: faceSVG(p.seed, p.female, 150) }),
@@ -59,6 +62,7 @@ export async function play(ctx) {
         h('div', { class: 'chips small' }, traits.map((t) => h('button', { class: 'chip', onclick: () => { fTrait.value = t; fImage.focus(); } }, t))),
         h('label', { class: 'field' }, h('span', null, '2. Le prénom en image'), fImage),
         h('label', { class: 'field' }, h('span', null, '3. Le lien entre les deux'), fLink),
+        h('label', { class: 'field' }, h('span', null, `Bonus : ${p.female ? 'une autre' : 'un autre'} ${p.name} que tu connais ?`), fKnown),
         h('div', { class: 'screen-actions' }, h('button', { class: 'btn primary', onclick: go }, i + 1 < n ? 'Visage suivant' : 'J’ai fini')),
       );
     });
@@ -74,7 +78,7 @@ export async function play(ctx) {
   for (let i = 0; i < order.length; i++) {
     const p = order[i];
     stage.setProgress(i / n);
-    const hint = [p.enc.trait, p.enc.image, p.enc.link].filter(Boolean).join(' · ');
+    const hint = [p.enc.trait, p.enc.image, p.enc.link, p.enc.known && `comme ${p.enc.known}`].filter(Boolean).join(' · ');
     const r = await askChecked(stage, {
       top: h('div', { class: 'face', html: faceSVG(p.seed, p.female, 150) }),
       fields: [input({ placeholder: 'Prénom', autocapitalize: 'words' }), input({ placeholder: 'Métier (bonus)' })],
