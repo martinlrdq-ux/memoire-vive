@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Kikory">
-  <script>try { var t = localStorage.getItem('kikory.theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <script>try { var t = localStorage.getItem('kikory.theme'), p = localStorage.getItem('kikory.palette'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; if (p && p !== 'ciel') document.documentElement.dataset.palette = p; } catch (e) {}</script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">

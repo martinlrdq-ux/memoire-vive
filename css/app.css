@@ -155,6 +155,26 @@
   color-scheme: dark;
 }
 
+/* Palettes des paliers (js/core/grades.js) : le ciel, les boutons, les barres et les touches de couleur.
+   Ciel = les valeurs ci-dessus. En sombre, le fond et les cartes prennent aussi une pointe de la teinte. */
+:root[data-palette='lagon'] { --sky-top: #045a72; --sky-bottom: #1594aa; --brand: #06728a; --brand-press: #034b5c; --brand-ink: #06728a; --brand-soft: #dbf1f4; --focus-ring: #06728a; --shadow-brand: 0 5px 0 #034b5c; }
+:root[data-palette='sapin'] { --sky-top: #0c4732; --sky-bottom: #2a7f5d; --brand: #156b4b; --brand-press: #0a4a33; --brand-ink: #156b4b; --brand-soft: #dcefe5; --focus-ring: #156b4b; --shadow-brand: 0 5px 0 #0a4a33; }
+:root[data-palette='bordeaux'] { --sky-top: #5c1128; --sky-bottom: #9e334b; --brand: #8a2040; --brand-press: #5e132b; --brand-ink: #8a2040; --brand-soft: #f6e1e6; --focus-ring: #8a2040; --shadow-brand: 0 5px 0 #5e132b; }
+:root[data-palette='pourpre'] { --sky-top: #321256; --sky-bottom: #66389a; --brand: #5a2b91; --brand-press: #3c1a66; --brand-ink: #5a2b91; --brand-soft: #ebe2f6; --focus-ring: #5a2b91; --shadow-brand: 0 5px 0 #3c1a66; }
+:root[data-palette='nuit'] { --sky-top: #0c1030; --sky-bottom: #2a2f6e; --brand: #946410; --brand-press: #664408; --brand-ink: #8a5c0c; --brand-soft: #f6ecd2; --focus-ring: #946410; --shadow-brand: 0 5px 0 #664408; --bar: #d9a62e; }
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='lagon']:not([data-theme='light']) { --sky-top: #03445a; --sky-bottom: #0b6f83; --brand: #0e7f96; --brand-press: #09586a; --brand-ink: #6fd0e2; --brand-soft: #123a44; --focus-ring: #6fd0e2; --shadow-brand: 0 5px 0 #09586a; --page: #071419; --card: #0f2229; --card-edge: #050d11; --row: #15303a; --line: #1f3f4a; --shadow-card: 0 4px 0 #050d11; --shadow-row: 0 3px 0 #1f3f4a; }
+  :root[data-palette='sapin']:not([data-theme='light']) { --sky-top: #0a3828; --sky-bottom: #1d6447; --brand: #1a8059; --brand-press: #0f5a3d; --brand-ink: #72d6a8; --brand-soft: #143a2a; --focus-ring: #72d6a8; --shadow-brand: 0 5px 0 #0f5a3d; --page: #07130e; --card: #10211a; --card-edge: #050c09; --row: #163026; --line: #1f3f31; --shadow-card: 0 4px 0 #050c09; --shadow-row: 0 3px 0 #1f3f31; }
+  :root[data-palette='bordeaux']:not([data-theme='light']) { --sky-top: #4a0d20; --sky-bottom: #7d2539; --brand: #b33a5c; --brand-press: #82263f; --brand-ink: #ff9bb5; --brand-soft: #3d1726; --focus-ring: #ff9bb5; --shadow-brand: 0 5px 0 #82263f; --page: #140a0d; --card: #22131a; --card-edge: #0c0507; --row: #2e1a23; --line: #43252f; --shadow-card: 0 4px 0 #0c0507; --shadow-row: 0 3px 0 #43252f; }
+  :root[data-palette='pourpre']:not([data-theme='light']) { --sky-top: #280e46; --sky-bottom: #4f2a7b; --brand: #7c4cc0; --brand-press: #5a3393; --brand-ink: #c3a2f5; --brand-soft: #2f1f48; --focus-ring: #c3a2f5; --shadow-brand: 0 5px 0 #5a3393; --page: #0f0a18; --card: #1c1429; --card-edge: #08050d; --row: #261b38; --line: #382a50; --shadow-card: 0 4px 0 #08050d; --shadow-row: 0 3px 0 #382a50; }
+  :root[data-palette='nuit']:not([data-theme='light']) { --sky-top: #080b22; --sky-bottom: #1d2152; --brand: #9a6a14; --brand-press: #6e4b0c; --brand-ink: #f0c45a; --brand-soft: #3a2f14; --focus-ring: #f0c45a; --shadow-brand: 0 5px 0 #6e4b0c; --page: #07080f; --card: #14151f; --card-edge: #040408; --row: #1d1f2c; --line: #2c2e40; --shadow-card: 0 4px 0 #040408; --shadow-row: 0 3px 0 #2c2e40; --bar: #e8b93f; }
+}
+:root[data-palette='lagon'][data-theme='dark'] { --sky-top: #03445a; --sky-bottom: #0b6f83; --brand: #0e7f96; --brand-press: #09586a; --brand-ink: #6fd0e2; --brand-soft: #123a44; --focus-ring: #6fd0e2; --shadow-brand: 0 5px 0 #09586a; --page: #071419; --card: #0f2229; --card-edge: #050d11; --row: #15303a; --line: #1f3f4a; --shadow-card: 0 4px 0 #050d11; --shadow-row: 0 3px 0 #1f3f4a; }
+:root[data-palette='sapin'][data-theme='dark'] { --sky-top: #0a3828; --sky-bottom: #1d6447; --brand: #1a8059; --brand-press: #0f5a3d; --brand-ink: #72d6a8; --brand-soft: #143a2a; --focus-ring: #72d6a8; --shadow-brand: 0 5px 0 #0f5a3d; --page: #07130e; --card: #10211a; --card-edge: #050c09; --row: #163026; --line: #1f3f31; --shadow-card: 0 4px 0 #050c09; --shadow-row: 0 3px 0 #1f3f31; }
+:root[data-palette='bordeaux'][data-theme='dark'] { --sky-top: #4a0d20; --sky-bottom: #7d2539; --brand: #b33a5c; --brand-press: #82263f; --brand-ink: #ff9bb5; --brand-soft: #3d1726; --focus-ring: #ff9bb5; --shadow-brand: 0 5px 0 #82263f; --page: #140a0d; --card: #22131a; --card-edge: #0c0507; --row: #2e1a23; --line: #43252f; --shadow-card: 0 4px 0 #0c0507; --shadow-row: 0 3px 0 #43252f; }
+:root[data-palette='pourpre'][data-theme='dark'] { --sky-top: #280e46; --sky-bottom: #4f2a7b; --brand: #7c4cc0; --brand-press: #5a3393; --brand-ink: #c3a2f5; --brand-soft: #2f1f48; --focus-ring: #c3a2f5; --shadow-brand: 0 5px 0 #5a3393; --page: #0f0a18; --card: #1c1429; --card-edge: #08050d; --row: #261b38; --line: #382a50; --shadow-card: 0 4px 0 #08050d; --shadow-row: 0 3px 0 #382a50; }
+:root[data-palette='nuit'][data-theme='dark'] { --sky-top: #080b22; --sky-bottom: #1d2152; --brand: #9a6a14; --brand-press: #6e4b0c; --brand-ink: #f0c45a; --brand-soft: #3a2f14; --focus-ring: #f0c45a; --shadow-brand: 0 5px 0 #6e4b0c; --page: #07080f; --card: #14151f; --card-edge: #040408; --row: #1d1f2c; --line: #2c2e40; --shadow-card: 0 4px 0 #040408; --shadow-row: 0 3px 0 #2c2e40; --bar: #e8b93f; }
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
 html { background: var(--sky-top); }
@@ -179,6 +199,14 @@ body::after {
   top: 0; left: -15%; right: -15%; height: 50vh;
   border-radius: 0 0 50% 50% / 0 0 12vh 12vh;
   background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-top) 30%, var(--sky-bottom) 100%);
+}
+/* Palette Nuit et or : quelques étoiles dans le ciel. */
+:root[data-palette='nuit'] body::after {
+  background:
+    radial-gradient(circle at 16% 24%, #ffe49a 1.4px, transparent 2px), radial-gradient(circle at 33% 9%, #fff 1px, transparent 1.6px),
+    radial-gradient(circle at 58% 17%, #ffe49a 1.6px, transparent 2.2px), radial-gradient(circle at 74% 33%, #fff 1px, transparent 1.6px),
+    radial-gradient(circle at 87% 11%, #ffe49a 1.4px, transparent 2px), radial-gradient(circle at 46% 40%, #fff 1px, transparent 1.6px),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-top) 30%, var(--sky-bottom) 100%);
 }
 h1, h2, h3, h4 { font-family: var(--font); margin: 0 0 8px; line-height: 1.15; }
 h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
@@ -413,7 +441,7 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-mut
   position: fixed; right: 20px; bottom: calc(var(--tabbar-h) + var(--safe-b) + 22px); z-index: 21;
   width: 60px; height: 60px; border-radius: 50%; border: 0;
   background: var(--brand); color: var(--on-brand); font: 800 32px/1 var(--font);
-  box-shadow: 0 5px 0 var(--brand-press), 0 12px 24px rgba(10, 60, 255, 0.3); cursor: pointer;
+  box-shadow: 0 5px 0 var(--brand-press), 0 12px 24px color-mix(in srgb, var(--brand) 30%, transparent); cursor: pointer;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 .fab:active { transform: translateY(5px); box-shadow: 0 0 0 var(--brand-press); }
@@ -447,7 +475,7 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-mut
 }
 .progress-line { display: grid; grid-template-columns: 1fr 100px 40px; gap: 10px; align-items: center; margin: 8px 0; font-weight: 600; }
 .bar { height: 14px; border-radius: var(--radius-pill); background: var(--brand-soft); overflow: hidden; }
-.bar > div { position: relative; height: 100%; min-width: 14px; background: var(--brand); border-radius: inherit; transition: width 0.6s var(--ease-out); }
+.bar > div { position: relative; height: 100%; min-width: 14px; background: var(--bar, var(--brand)); border-radius: inherit; transition: width 0.6s var(--ease-out); }
 .bar > div::after { content: ''; position: absolute; left: 7px; right: 7px; top: 3px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.4); }
 .bar.done > div { background: var(--success-bright); }
 .bar.big { height: 16px; margin: 6px 0 10px; }
@@ -679,7 +707,7 @@ details.why p, details.why ul { margin-top: 8px; }
 .nb-score .bad { color: var(--danger); }
 
 /* Message reçu */
-.play-btn { appearance: none; border: 0; width: 116px; height: 116px; border-radius: 50%; background: var(--brand); color: var(--on-brand); font-size: 44px; margin: 10px auto; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 7px 0 var(--brand-press), 0 16px 30px rgba(10, 60, 255, 0.3); }
+.play-btn { appearance: none; border: 0; width: 116px; height: 116px; border-radius: 50%; background: var(--brand); color: var(--on-brand); font-size: 44px; margin: 10px auto; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 7px 0 var(--brand-press), 0 16px 30px color-mix(in srgb, var(--brand) 30%, transparent); }
 .play-btn.playing { animation: pulse-play 1s infinite; }
 .play-btn:disabled { opacity: 0.4; }
 @keyframes pulse-play { 50% { transform: scale(1.06); } }
@@ -793,6 +821,99 @@ details.why p, details.why ul { margin-top: 8px; }
 @keyframes co-wink { 0%, 6%, 34%, 100% { transform: none; } 10%, 30% { transform: scaleY(0); } }
 @keyframes co-closed { 0%, 7%, 33%, 100% { opacity: 0; } 10%, 30% { opacity: 1; } }
 @keyframes co-twinkle { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); } 15% { opacity: 1; transform: scale(1.2) rotate(45deg); } 35% { opacity: 0; transform: scale(0.6) rotate(90deg); } }
+
+/* --- Le hibou du grade (js/core/grades.js) : il fait un petit saut et salue de l'aile droite. --- */
+.owl-wave { transform-box: fill-box; transform-origin: 50% 50%; }
+.grade-owl { appearance: none; border: 0; background: none; padding: 0; margin: 0; cursor: pointer; display: block; line-height: 0; border-radius: var(--radius-s); flex-shrink: 0; }
+.grade-owl svg, .grade-badge svg, .grade-ghost svg { display: block; width: 100%; height: auto; overflow: visible; }
+.grade-owl.hello svg { animation: owl-hop 0.55s cubic-bezier(0.3, 1.5, 0.5, 1) 0.15s; }
+.grade-owl.hello .owl-wave { animation: owl-hello 2.1s cubic-bezier(0.35, 0.6, 0.4, 1) 0.45s; }
+@keyframes owl-hop { 35% { transform: translateY(-8px); } }
+@keyframes owl-hello { 0%, 100% { transform: none; } 14% { transform: rotate(-122deg); } 26% { transform: rotate(-96deg); } 38% { transform: rotate(-126deg); } 50% { transform: rotate(-96deg); } 62% { transform: rotate(-122deg); } 78% { transform: rotate(-112deg); } }
+
+/* Carte du grade, en tête de la page Progrès. */
+.grade-main { display: flex; gap: 8px; align-items: flex-end; }
+.grade-main .grade-owl { width: 118px; }
+.grade-info { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 2px; }
+.grade-info .bar.big { width: 100%; margin: 0; }
+.grade-info p { margin: 0; }
+.grade-title { display: flex; align-items: center; gap: 4px; }
+.grade-title .grade-badge { width: 48px; margin: -6px -2px -6px -8px; }
+.grade-title h2 { margin: 0; font-size: 23px; }
+.grade-badge { line-height: 0; flex-shrink: 0; }
+.grade-kicker { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); }
+.grade-frise { display: flex; justify-content: space-between; gap: 2px; margin-top: 14px; padding: 6px; border-radius: var(--radius-m); background: var(--row); }
+.grade-frise button { appearance: none; border: 0; background: none; padding: 1px; width: 27px; border-radius: 9px; cursor: pointer; line-height: 0; }
+.grade-frise .later { filter: grayscale(1); opacity: 0.35; }
+.grade-frise .now { background: var(--brand-soft); box-shadow: 0 0 0 2px var(--brand); }
+.grade-next { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+.grade-next p { margin: 0; }
+.grade-ghost { width: 52px; flex-shrink: 0; line-height: 0; filter: brightness(0); opacity: 0.16; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .grade-ghost { filter: brightness(0) invert(1); opacity: 0.14; } }
+:root[data-theme='dark'] .grade-ghost { filter: brightness(0) invert(1); opacity: 0.14; }
+.grade-sheet-owl { width: 150px; margin: 0 auto 8px; }
+
+/* Nouveau grade (celebrateGrade) : l'ancien hibou s'efface, la palette du palier remplace l'ancienne,
+   l'insigne tombe, le nouveau hibou surgit et salue. Sans animation, l'écran est déjà dans son état final. */
+.celebrate.grade-up { background: radial-gradient(120% 80% at 50% 46%, var(--from-b), var(--from-t) 72%); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.gu-bg { position: absolute; inset: 0; background: radial-gradient(120% 80% at 50% 46%, var(--to-b), var(--to-t) 72%); animation: gu-in 0.8s ease 1s backwards; }
+.gu-rays {
+  position: absolute; left: 50%; top: 44%; width: 200vmax; height: 200vmax; margin: -100vmax 0 0 -100vmax; pointer-events: none;
+  background: repeating-conic-gradient(rgba(255, 226, 150, 0.3) 0deg 9deg, rgba(255, 226, 150, 0) 9deg 24deg);
+  -webkit-mask-image: radial-gradient(circle, #000 4%, transparent 28%); mask-image: radial-gradient(circle, #000 4%, transparent 28%);
+  animation: gu-in 0.6s ease 1.1s backwards, gu-spin 24s linear 1.1s infinite;
+}
+.gu-content { width: 100%; max-width: 360px; }
+.gu-badge { width: 96px; animation: gu-stamp 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) 1.75s backwards; }
+.gu-kicker { margin-top: 2px; font: 800 14px/1.2 var(--font); letter-spacing: 0.14em; text-transform: uppercase; color: #ffe49a; animation: fade-up 0.45s var(--ease-out) 1.95s backwards; }
+.gu-name { font: 800 44px/1.05 var(--font); letter-spacing: -0.02em; text-shadow: 0 3px 14px rgba(0, 0, 0, 0.3); animation: fade-up 0.45s var(--ease-out) 2.05s backwards; }
+.gu-stage { position: relative; width: min(230px, 56vw, 30vh); aspect-ratio: 200 / 196; margin: 6px 0 4px; }
+.gu-stage > .gu-old, .gu-stage > .gu-new { position: absolute; inset: 0; line-height: 0; }
+.gu-stage svg { display: block; width: 100%; height: auto; overflow: visible; }
+.gu-old { opacity: 0; animation: gu-old 1s cubic-bezier(0.5, 0, 0.75, 0) 0.15s backwards; }
+.gu-flash { position: absolute; left: 50%; top: 55%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: #fff; opacity: 0; animation: gu-flash 0.8s ease-out 0.8s; }
+.gu-new { animation: gu-pop 0.85s cubic-bezier(0.3, 1.45, 0.55, 1) 1.15s backwards; }
+.gu-new svg { transform-origin: 50% 92%; animation: co-sway 2.6s ease-in-out 2.4s infinite; }
+.gu-new .owl-wave { animation: owl-hello 2s cubic-bezier(0.35, 0.6, 0.4, 1) 2.1s backwards; }
+.gu-tier { margin: 4px 0 10px; font: 600 15px/1.3 var(--font); opacity: 0.9; animation: fade-up 0.45s var(--ease-out) 2.5s backwards; }
+.gu-chip {
+  display: flex; gap: 12px; align-items: center; width: 100%; margin: 0 0 8px; padding: 11px 14px; text-align: left;
+  border-radius: 18px; background: rgba(255, 255, 255, 0.13); border: 1px solid rgba(255, 255, 255, 0.22);
+  font: 500 15px/1.3 var(--font); animation: fade-up 0.45s var(--ease-out) 2.5s backwards;
+}
+.gu-chip + .gu-chip { animation-delay: 2.65s; }
+.gu-chip > span:first-child { font-size: 22px; flex-shrink: 0; }
+.grade-up .co-btn { margin-top: 12px; animation-delay: 2.95s; }
+@keyframes gu-in { from { opacity: 0; } }
+@keyframes gu-spin { to { transform: rotate(360deg); } }
+@keyframes gu-old {
+  0% { opacity: 1; transform: none; filter: none; }
+  45% { opacity: 1; transform: translateY(-8px) scale(1.05); filter: brightness(1.5) drop-shadow(0 0 18px #fff); }
+  100% { opacity: 0; transform: scale(0.12) rotate(28deg); filter: brightness(3); }
+}
+@keyframes gu-flash { 0% { opacity: 0.95; transform: scale(0.2); } 100% { opacity: 0; transform: scale(18); } }
+@keyframes gu-pop { 0% { opacity: 0; transform: translateY(70px) scale(0.3); } }
+@keyframes gu-stamp { 0% { opacity: 0; transform: scale(2.6) rotate(-14deg); } }
+
+/* Réglages : pastilles des palettes débloquées. */
+.swatches { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 4px 0 10px; }
+.swatch { appearance: none; border: 0; background: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; font: 600 12px/1.2 var(--font); color: var(--ink-muted); }
+.swatch-dot { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--a), var(--b)); }
+.swatch:disabled { cursor: default; }
+.swatch:disabled .swatch-dot { opacity: 0.35; filter: grayscale(0.6); }
+.swatch.on { color: var(--ink); }
+.swatch.on .swatch-dot { box-shadow: 0 0 0 3px var(--page), 0 0 0 5px var(--brand); }
+
+/* Nouveautés, une fois par mise à jour. */
+.news { text-align: center; }
+.news .grade-owl { width: 128px; margin: -4px auto 4px; }
+.news-kicker { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brand-ink); }
+.news h3 { margin: 2px 0 12px; font-size: 26px; font-weight: 800; }
+.news-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.news-list li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: var(--radius-m); background: var(--card); }
+.news-icon { font-size: 24px; line-height: 1.2; flex-shrink: 0; }
+.news-list strong { display: block; font-size: 16px; }
+.news-list p { margin: 2px 0 0; font-size: 14px; color: var(--ink-muted); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

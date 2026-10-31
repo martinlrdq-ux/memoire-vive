@@ -2,6 +2,7 @@
 import { S, save, uid, dayKey, dayStart, addDays, dayDiff, weekKey, weekday, DAY_MS } from './store.js';
 import { review, scheduleDays, retrievability } from './fsrs.js';
 import { toast } from './ui.js';
+import { GRADES, gradeOf } from './grades.js';
 
 // --- Techniques, niveaux, chapitres ----------------------------------------
 
@@ -53,19 +54,11 @@ export const DISTRICTS = {
 const SRC_DISTRICT = { mavie: 'place', weekend: 'place', story: 'ateliers', sketch: 'ateliers', names: 'visages', digits: 'chiffres', palace: 'palais', oral: 'port', reading: 'bibliotheque', vocab: 'bibliotheque', major: 'chiffres' };
 export const districtOf = (src) => SRC_DISTRICT[src] || 'place';
 
-export const RANKS = [
-  { name: 'Apprenti', min: 0 },
-  { name: 'Initié', min: 300 },
-  { name: 'Mnémoniste', min: 1500 },
-  { name: 'Maître', min: 5000 },
-  { name: 'Grand maître', min: 15000 },
-];
-
+// Grade atteint avec les points (les 12 grades et leurs hiboux : grades.js).
 export function rank(total = S.points.total) {
-  let i = 0;
-  while (i + 1 < RANKS.length && total >= RANKS[i + 1].min) i++;
-  const next = RANKS[i + 1];
-  return { ...RANKS[i], index: i, next, progress: next ? (total - RANKS[i].min) / (next.min - RANKS[i].min) : 1 };
+  const i = gradeOf(total);
+  const next = GRADES[i + 1];
+  return { ...GRADES[i], index: i, next, progress: next ? (total - GRADES[i].min) / (next.min - GRADES[i].min) : 1 };
 }
 
 // --- Points -----------------------------------------------------------------
@@ -79,12 +72,9 @@ export function award(pts, { annex = false } = {}) {
     if (!pts) return 0;
     S.points.annexByDay[today] = used + pts;
   }
-  const before = rank().index;
   S.points.total += pts;
   S.points.byDay[today] = (S.points.byDay[today] || 0) + pts;
-  const r = rank();
-  if (r.index > before) toast(`Nouveau rang : ${r.name} 🎉`, 'gold');
-  save();
+  save(); // un nouveau grade se fête en revenant aux onglets (festivities, app.js)
   return pts;
 }
 

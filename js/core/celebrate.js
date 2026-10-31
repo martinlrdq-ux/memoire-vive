@@ -1,6 +1,7 @@
 // La fête de fin de mission : feux d'artifice, canons à confettis et serpentins, et le hibou qui surgit,
 // lève un grand pouce et fait un clin d'œil. Une fois par jour, quand la mission atteint 100 %.
 import { h } from './ui.js';
+import { GRADES, PALETTES, tierOf, gradeOwl, gradeBadge } from './grades.js';
 
 const BROWN = '#854F0B', DARK = '#633806', QUILL = '#4E2C04', CREAM = '#FAEEDA', BELLY = '#F3D7A8', ORANGE = '#EF9F27', INK = '#412402';
 const COLORS = ['#ffc21a', '#ff6b1a', '#22c55e', '#3d8bff', '#ff5fa2', '#8ccbff', '#ffffff', '#b07cff'];
@@ -50,7 +51,8 @@ ${spark(104, -150, 9)}${spark(60, -162, 6)}${spark(110, -112, 5)}
 }
 
 // Feux d'artifice et confettis sur deux toiles : derrière le hibou (fusées, gerbes) et devant (papiers, serpentins).
-function fireworks(back, front) {
+// Sans fusées : seulement les canons à cotillons (à l'instant at, en ms) et la pluie de papiers.
+function fireworks(back, front, { withRockets = true, colors = COLORS, at = 0 } = {}) {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   let W = 0, H = 0;
   const size = () => {
@@ -68,7 +70,7 @@ function fireworks(back, front) {
   const G = 0.5; // pesanteur des fusées : la vitesse de départ les fait éclater pile à leur hauteur
   const launch = () => {
     const top = rand(0.1, 0.4) * H;
-    rockets.push({ x: rand(0.15, 0.85) * W, y: H + 10, vx: rand(-0.8, 0.8), vy: -Math.sqrt(2 * G * (H + 10 - top)) * 1.02, top, color: pick(COLORS) });
+    rockets.push({ x: rand(0.15, 0.85) * W, y: H + 10, vx: rand(-0.8, 0.8), vy: -Math.sqrt(2 * G * (H + 10 - top)) * 1.02, top, color: pick(colors) });
   };
   const burst = (x, y, color) => {
     const n = 70, ring = Math.random() < 0.35;
@@ -78,7 +80,7 @@ function fireworks(back, front) {
     }
   };
   const paper = (x, y, vx, vy) => papers.push({
-    x, y, vx, vy, rot: rand(0, 6.3), vr: rand(-0.2, 0.2), phase: rand(0, 6.3), color: pick(COLORS),
+    x, y, vx, vy, rot: rand(0, 6.3), vr: rand(-0.2, 0.2), phase: rand(0, 6.3), color: pick(colors),
     kind: Math.random() < 0.16 ? 'ribbon' : Math.random() < 0.25 ? 'dot' : 'rect', w: rand(6, 11) * u, h: rand(9, 15) * u,
   });
   // Les deux canons à cotillons, depuis les coins du bas.
@@ -88,7 +90,7 @@ function fireworks(back, front) {
       paper(side < 0 ? -10 : W + 10, H * 0.92, -side * Math.cos(a) * v, -Math.sin(a) * v);
     }
   };
-  const plan = [[0, cannons], [0, launch], [200, launch], [500, launch], [900, launch], [1150, launch], [1500, launch], [1900, launch], [2200, launch], [2600, launch], [3000, launch], [3500, launch]];
+  const plan = !withRockets ? [[at, cannons]] : [[0, cannons], [0, launch], [200, launch], [500, launch], [900, launch], [1150, launch], [1500, launch], [1900, launch], [2200, launch], [2600, launch], [3000, launch], [3500, launch]];
   const t0 = performance.now();
   let last = t0, raf = 0, stopped = false;
 
@@ -96,7 +98,7 @@ function fireworks(back, front) {
     const k = Math.min(3, (now - last) / 16.7), t = now - t0;
     last = now;
     while (plan.length && plan[0][0] <= t) plan.shift()[1]();
-    if (t > 700 && t < 4200) for (let i = 0; i < 2; i++) if (Math.random() < 0.6) paper(rand(0, W), -20, rand(-1, 1), rand(1, 3));
+    if (t > at + 700 && t < at + 4200) for (let i = 0; i < 2; i++) if (Math.random() < 0.6) paper(rand(0, W), -20, rand(-1, 1), rand(1, 3));
 
     bx.globalCompositeOperation = 'destination-out';
     bx.fillStyle = 'rgba(0,0,0,0.28)';
@@ -144,7 +146,7 @@ function fireworks(back, front) {
       }
       fx.restore();
     }
-    if (!stopped && (plan.length || rockets.length || sparks.length || papers.length || t < 4200)) raf = requestAnimationFrame(frame);
+    if (!stopped && (plan.length || rockets.length || sparks.length || papers.length || t < at + 4200)) raf = requestAnimationFrame(frame);
   };
   raf = requestAnimationFrame(frame);
   return () => { stopped = true; cancelAnimationFrame(raf); window.removeEventListener('resize', size); };
@@ -176,4 +178,43 @@ export function celebrate({ streak = 0, name = '' } = {}) {
   document.body.append(el);
   if (!calm) stop = fireworks(back, front);
   auto = setTimeout(close, 9000);
+}
+
+// Nouveau grade : l'ancien hibou s'efface dans un éclair, la palette du nouveau palier remplace l'ancienne,
+// l'insigne tombe comme un tampon, le nouveau hibou surgit dans sa tenue et salue sous les cotillons.
+// follow : l'app suit la couleur du grade (Réglages) ; onClose est appelé à la fermeture.
+export function celebrateGrade({ from, to, follow = true, onClose = () => {} }) {
+  if (document.querySelector('.celebrate')) return;
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const g = GRADES[to], tier = tierOf(to), before = PALETTES[tierOf(from).palette], after = PALETTES[tier.palette];
+  const back = h('canvas', { class: 'co-canvas' }), front = h('canvas', { class: 'co-canvas front' });
+  let stop = () => {};
+  let closing = false;
+  const opened = performance.now();
+  const close = () => {
+    if (closing || performance.now() - opened < (calm ? 700 : 2200)) return; // laisse le temps de voir le nouveau hibou
+    closing = true;
+    el.classList.add('out');
+    setTimeout(() => { stop(); el.remove(); onClose(); }, 320);
+  };
+  const newTier = tierOf(from) !== tier;
+  const el = h('div', {
+    class: 'celebrate grade-up', role: 'dialog', 'aria-label': `Nouveau grade : ${g.name}`, onclick: close,
+    style: `--from-t: ${before.top}; --from-b: ${before.bottom}; --to-t: ${after.top}; --to-b: ${after.bottom}`,
+  },
+  h('div', { class: 'gu-bg' }), h('div', { class: 'gu-rays' }), back,
+  h('div', { class: 'co-content gu-content' },
+    h('div', { class: 'grade-badge gu-badge', html: gradeBadge(to) }),
+    h('div', { class: 'gu-kicker' }, 'Nouveau grade'),
+    h('div', { class: 'gu-name' }, g.name),
+    h('div', { class: 'gu-stage' }, h('div', { class: 'gu-old', html: gradeOwl(from) }), h('div', { class: 'gu-flash' }), h('div', { class: 'gu-new', html: gradeOwl(to) })),
+    h('p', { class: 'gu-tier' }, `Grade ${to + 1} sur ${GRADES.length} · ${tier.name}`),
+    h('p', { class: 'gu-chip' }, h('span', null, '✨'), h('span', null, h('strong', null, 'Nouvelle tenue : '), g.outfit[0].toLowerCase() + g.outfit.slice(1), '.')),
+    newTier && h('p', { class: 'gu-chip' }, h('span', null, '🎨'),
+      follow ? h('span', null, h('strong', null, `L’app passe en ${after.name}.`), ' Tu préfères le bleu ? Réglages, Couleurs de l’app.')
+        : h('span', null, h('strong', null, `Palette ${after.name} débloquée.`), ' À choisir dans les Réglages, Couleurs de l’app.')),
+    h('button', { class: 'co-btn', onclick: (e) => { e.stopPropagation(); close(); } }, 'Continuer')),
+  front);
+  document.body.append(el);
+  if (!calm) stop = fireworks(back, front, { withRockets: false, at: 1300, colors: ['#ffc21a', '#ffe49a', '#ffffff', after.bottom, '#ff6b1a', '#22c55e'] });
 }

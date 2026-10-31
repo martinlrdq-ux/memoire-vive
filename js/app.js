@@ -2,7 +2,7 @@
 import { h, toast, sheet, input, textarea, Stage, screen, ABORT, digitsOf, plural } from './core/ui.js';
 import { S, save, dayKey, dayStart, addDays, fmtDay, exportJSON, importJSON, resetAll, dayDiff, rng } from './core/store.js';
 import {
-  TECHS, CHAPTERS, MAINTENANCE, DISTRICTS, RANKS, BADGES, rank, queue, forecast, levelInfo, sessionToday, techniqueOfDay,
+  TECHS, CHAPTERS, MAINTENANCE, DISTRICTS, BADGES, rank, queue, forecast, levelInfo, sessionToday, techniqueOfDay,
   streakCount, jokersLeft, pointsToday, createItem, deleteItem, chapterProgress, techUnlocked, STAR_COLORS, tapStar,
   retention7, retentionByWeek, difficultyInsight, bilanStatus, checkinDue, updateStreak, checkChapter, checkBadges, districtOf, eveningDue,
 } from './core/engine.js';
@@ -19,7 +19,9 @@ import { editPalace, fillSize, palaceGuide, storedLists } from './games/palais.j
 import { VIRTUAL_PALACES } from './data/palaces.js';
 import { LANGUAGES } from './data/vocab.js';
 import { owlSVG } from './core/logo.js';
-import { celebrate } from './core/celebrate.js';
+import { celebrate, celebrateGrade } from './core/celebrate.js';
+import { GRADES, TIERS, PALETTES, gradeOf, tierOf, gradeOwl, gradeBadge } from './core/grades.js';
+import { NEWS } from './data/news.js';
 import { cloudEnabled, session, signup, login, logout, pullIfNewer, push } from './core/cloud.js';
 import { notifStatus, enableNotifs, disableNotifs, testNotif, checkNotifs } from './core/notify.js';
 import './reminders.js';
@@ -50,6 +52,27 @@ function applyTheme() {
   if (t === 'auto') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = t;
   try { localStorage.setItem('kikory.theme', t); } catch (e) { /* stockage indisponible */ }
+}
+
+// Grade fêté (celui dont l'app porte les couleurs) ; à la première ouverture, celui des points, sans fête.
+const gradeShown = () => S.records.grade ?? gradeOf(S.points.total);
+
+// Palette du palier atteint, ou celle choisie dans les Réglages si elle est débloquée.
+// Copiée hors de S, comme le thème, pour l'appliquer avant le premier affichage.
+function paletteId() {
+  const reached = GRADES[gradeShown()].tier;
+  const c = S.profile.colors || 'grade';
+  const k = TIERS.findIndex((t) => t.palette === c);
+  return k >= 0 && k <= reached ? c : TIERS[reached].palette;
+}
+function applyPalette() {
+  const id = paletteId(), p = PALETTES[id];
+  if (id === 'ciel') delete document.documentElement.dataset.palette;
+  else document.documentElement.dataset.palette = id;
+  const [light, dark] = document.querySelectorAll('meta[name="theme-color"]');
+  light?.setAttribute('content', p.top);
+  dark?.setAttribute('content', p.darkTop);
+  try { localStorage.setItem('kikory.palette', id); } catch (e) { /* stockage indisponible */ }
 }
 
 // Les entrées (cartes qui montent, barres qui se remplissent) ne jouent qu'en arrivant sur un onglet
@@ -88,7 +111,45 @@ export function render() {
   ].filter(Boolean));
   if (!tabbar.isConnected) app.append(tabbar);
   entering = false;
-  if (tab === 'home') celebrateDay();
+  festivities();
+}
+
+// Les fêtes, l'une après l'autre : les nouveautés d'une mise à jour, puis un nouveau grade, puis la mission
+// du jour à 100 % (sur l'accueil). Jamais pendant un exercice, ni par-dessus une autre fête ou une feuille.
+let festive = false;
+function festivities() {
+  if (festive || document.body.classList.contains('stage-open') || document.querySelector('.celebrate, .sheet-wrap')) return;
+  const g = gradeOf(S.points.total);
+  if (S.records.grade == null || g < S.records.grade) { S.records.grade = g; save(); applyPalette(); }
+  if (NEWS[0] && S.records.news !== NEWS[0].id) {
+    festive = true;
+    setTimeout(async () => { await showNews(); festive = false; setTimeout(festivities, 300); }, 600); // la feuille finit de se refermer
+  } else if (g > S.records.grade) {
+    festive = true;
+    setTimeout(() => {
+      const from = S.records.grade;
+      S.records.grade = g;
+      save();
+      celebrateGrade({ from, to: g, follow: (S.profile.colors || 'grade') === 'grade', onClose: () => { festive = false; festivities(); } });
+      applyPalette(); // derrière l'écran de fête, l'app prend déjà ses nouvelles couleurs
+    }, AFTER_STAGE + 500);
+  } else if (tab === 'home') celebrateDay();
+}
+
+// Nouveautés de la dernière mise à jour, montrées une fois (les nouveaux venus sont marqués à l'inscription).
+async function showNews() {
+  const n = NEWS[0];
+  S.records.news = n.id;
+  save();
+  const answer = await sheet({
+    body: h('div', { class: 'news' },
+      h('div', { class: `grade-owl ${calm() ? '' : 'hello'}`, html: gradeOwl(gradeShown()) }),
+      h('p', { class: 'news-kicker' }, 'Quoi de neuf'),
+      h('h3', null, n.title),
+      h('ul', { class: 'news-list' }, n.items.map(([icon, title, text]) => h('li', null, h('span', { class: 'news-icon' }, icon), h('div', null, h('strong', null, title), h('p', null, text)))))),
+    buttons: [...(n.tab ? [{ label: n.cta, value: 'go', kind: 'primary' }] : []), { label: n.tab ? 'Plus tard' : 'Compris', value: false, kind: n.tab ? 'ghost' : 'primary' }],
+  });
+  if (answer === 'go') go(n.tab);
 }
 
 // Mission du jour à 100 % : la fête, une seule fois par jour, une fois la barre de l'accueil remplie.
@@ -664,6 +725,54 @@ function retentionChart() {
   return `<svg viewBox="0 0 ${W} ${H + 14}" width="100%"><line x1="0" x2="${W}" y1="${target}" y2="${target}" stroke="var(--gold)" stroke-dasharray="4 3"/><text x="${W - 2}" y="${target - 3}" text-anchor="end" font-size="9" fill="var(--gold)">cible ${Math.round(S.profile.retention * 100)} %</text>${bars}<text x="0" y="${H + 12}" font-size="9" fill="var(--muted)">il y a 12 semaines</text><text x="${W}" y="${H + 12}" text-anchor="end" font-size="9" fill="var(--muted)">cette semaine</text></svg>`;
 }
 
+const fmtPts = (n) => n.toLocaleString('fr-FR');
+const lower = (s) => s[0].toLowerCase() + s.slice(1);
+
+// Fiche d'un grade touché dans la frise : son hibou s'il est atteint, sa silhouette sinon.
+// Seule la tenue du prochain grade est dévoilée ; les suivantes restent une surprise.
+function gradeSheet(k, i) {
+  const g = GRADES[k];
+  sheet({
+    title: g.name,
+    body: h('div', { class: 'center' },
+      h('div', { class: `grade-sheet-owl ${k > i ? 'grade-ghost' : ''}`, html: gradeOwl(k) }),
+      h('p', { class: 'muted small' }, `Grade ${k + 1} sur ${GRADES.length} · ${TIERS[g.tier].name} · ${g.min ? `dès ${fmtPts(g.min)} points` : 'dès le départ'}`),
+      h('p', null, k <= i + 1 ? `${k > i ? 'Sa tenue' : 'Tenue'} : ${lower(g.outfit)}.` : 'Sa tenue reste une surprise.')),
+    buttons: [{ label: 'Fermer', value: true }],
+  });
+}
+
+// En tête de Progrès : le hibou en pied, qui salue en arrivant (et quand on le touche), à côté de la barre.
+function gradeCard(r) {
+  const i = r.index, g = GRADES[i], next = r.next;
+  const wave = (e) => { const b = e.currentTarget; b.classList.remove('hello'); void b.offsetWidth; b.classList.add('hello'); };
+  const newColors = next && (S.profile.colors || 'grade') === 'grade' && GRADES[i + 1].tier !== g.tier;
+  return h('section', { class: 'card grade-card' },
+    h('div', { class: 'grade-main' },
+      h('button', { class: `grade-owl ${entering && !calm() ? 'hello' : ''}`, 'aria-label': `Ton hibou ${g.name}. Touche-le pour qu’il te salue.`, html: gradeOwl(i), onclick: wave }),
+      h('div', { class: 'grade-info' },
+        h('div', { class: 'grade-title' }, h('span', { class: 'grade-badge', html: gradeBadge(i) }),
+          h('div', null, h('span', { class: 'grade-kicker' }, `Grade ${i + 1} sur ${GRADES.length}`), h('h2', null, g.name))),
+        h('span', { class: 'tag' }, `${fmtPts(S.points.total)} points`),
+        h('div', { class: 'bar big' }, h('div', { style: { width: `${r.progress * 100}%` } })),
+        h('p', { class: 'muted small' }, next ? `${fmtPts(next.min - S.points.total)} points avant ${next.name}` : 'Le plus haut grade. Chapeau !'))),
+    h('div', { class: 'grade-frise' }, GRADES.map((x, k) => h('button', {
+      class: k === i ? 'now' : k > i ? 'later' : '', 'aria-label': `${x.name}${k === i ? ', ton grade' : k > i ? ', à venir' : ''}`, html: gradeBadge(k), onclick: () => gradeSheet(k, i),
+    }))),
+    next && h('div', { class: 'grade-next' },
+      h('div', { class: 'grade-ghost', html: gradeOwl(i + 1) }),
+      h('div', null, h('strong', null, `Prochain grade : ${next.name}`),
+        h('p', { class: 'muted small' }, `Ton hibou gagnera : ${lower(next.outfit)}${newColors ? `, et l’app passera en ${PALETTES[TIERS[next.tier].palette].name}` : ''}.`))),
+    h('details', { class: 'why' }, h('summary', null, 'Comment gagne-t-on des points ?'),
+      h('ul', { class: 'kv' }, [
+        ['Rappel en fin de session (le jour même)', '2'], ['Rappel le lendemain', '5'], ['Rappel 7 jours ou plus après', '10'], ['Rappel 30 jours ou plus après', '20'],
+        ['Réponse tapée (rappel libre)', '× 1,5'], ['« Ma vie » retrouvé le soir', '5'], ['Mission du jour terminée', '10'], ['Consigne du soir tenue', '5'],
+        ['Test de maîtrise réussi', '50'], ['Exercice annexe', '1, max 10/jour'],
+      ].map(([a, b]) => h('li', null, h('span', null, a), h('strong', null, b)))),
+      h('p', { class: 'muted small' }, 'Aucun point n’est retiré pour une erreur : une erreur corrigée aide à apprendre.'),
+      h('p', { class: 'muted small' }, GRADES.map((x) => `${x.name} ${fmtPts(x.min)}`).join(' · '))));
+}
+
 function progresView() {
   const r = rank();
   const ret = retention7(30);
@@ -675,17 +784,7 @@ function progresView() {
   const lastCheck = S.checkins[S.checkins.length - 1];
   return h('div', null,
     skyHeader('Progrès'),
-    h('section', { class: 'card' },
-      h('div', { class: 'card-head' }, h('h2', null, `🏅 ${r.name}`), h('span', { class: 'tag' }, `${S.points.total} points`)),
-      r.next ? h('div', null, h('div', { class: 'bar big' }, h('div', { style: { width: `${r.progress * 100}%` } })), h('p', { class: 'muted small' }, `${r.next.min - S.points.total} points avant ${r.next.name}`)) : h('p', null, 'Rang le plus haut atteint. Bravo !'),
-      h('details', { class: 'why' }, h('summary', null, 'Comment gagne-t-on des points ?'),
-        h('ul', { class: 'kv' }, [
-          ['Rappel en fin de session (le jour même)', '2'], ['Rappel le lendemain', '5'], ['Rappel 7 jours ou plus après', '10'], ['Rappel 30 jours ou plus après', '20'],
-          ['Réponse tapée (rappel libre)', '× 1,5'], ['« Ma vie » retrouvé le soir', '5'], ['Mission du jour terminée', '10'], ['Consigne du soir tenue', '5'],
-          ['Test de maîtrise réussi', '50'], ['Exercice annexe', '1, max 10/jour'],
-        ].map(([a, b]) => h('li', null, h('span', null, a), h('strong', null, b)))),
-        h('p', { class: 'muted small' }, 'Aucun point n’est retiré pour une erreur : une erreur corrigée aide à apprendre.'),
-        h('p', { class: 'muted small' }, RANKS.map((x) => `${x.name} ${x.min}`).join(' · ')))),
+    gradeCard(r),
     h('section', { class: 'card' },
       h('div', { class: 'card-head' }, h('h2', null, '🎯 Rétention à 7 jours'), h('span', { class: 'tag' }, ret.rate == null ? '—' : `${Math.round(ret.rate * 100)} %`)),
       h('p', { class: 'muted small' }, 'L’indicateur principal : la part des éléments retrouvés lors d’une révision qui arrive au moins 7 jours après la précédente. Contrairement aux scores des jeux, il mesure ce que tu retiens vraiment.'),
@@ -771,6 +870,31 @@ async function exportBackup() {
   if (ok) { S.lastBackup = Date.now(); save(); toast('Sauvegarde exportée 💾', 'ok'); render(); }
 }
 
+// Bloc « Couleurs de l'app » des Réglages : suivre le grade, garder le bleu, ou une palette déjà débloquée.
+function colorsBlock() {
+  const box = h('div');
+  const pick = (v) => { S.profile.colors = v; save(); applyPalette(); draw(); };
+  const draw = () => {
+    const c = S.profile.colors || 'grade', reached = GRADES[gradeShown()].tier;
+    const chip = (v, label) => h('button', { class: `chip ${c === v ? 'on' : ''}`, 'aria-pressed': String(c === v), onclick: () => pick(v) }, label);
+    box.replaceChildren(
+      h('div', { class: 'chips' }, chip('grade', 'Selon mon grade'), chip('ciel', 'Bleu d’origine')),
+      h('div', { class: 'swatches' }, TIERS.slice(1).map((t, k) => {
+        const p = PALETTES[t.palette], locked = k + 1 > reached;
+        return h('button', {
+          class: `swatch ${c === t.palette ? 'on' : ''}`, disabled: locked, 'aria-pressed': String(c === t.palette),
+          'aria-label': `${p.name}${locked ? ', à débloquer' : ''}`, style: `--a: ${p.top}; --b: ${p.bottom}`, onclick: () => pick(t.palette),
+        }, h('span', { class: 'swatch-dot', html: locked ? LOCK_SVG : '' }), h('span', null, p.name.replace(' et or', '')));
+      })),
+      h('p', { class: 'muted small' }, c === 'grade'
+        ? `La couleur change à chaque palier. Aujourd’hui : ${PALETTES[TIERS[reached].palette].name}.`
+        : 'Les autres palettes se débloquent avec les paliers de grade.'));
+  };
+  draw();
+  return box;
+}
+const LOCK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
 function openSettings() {
   const stage = new Stage('Réglages', { confirmClose: false, onClose: render });
   const P = S.profile;
@@ -826,6 +950,8 @@ function openSettings() {
     h('h3', null, 'Apparence'),
     themeChips,
     h('p', { class: 'muted small' }, 'Automatique suit le réglage clair ou sombre de ton iPhone.'),
+    h('h3', null, 'Couleurs de l’app'),
+    colorsBlock(),
     h('h3', null, 'Toi'),
     h('label', { class: 'field' }, h('span', null, 'Prénom'), fName),
     h('h3', null, 'Habitude'),
@@ -911,6 +1037,8 @@ async function onboarding() {
       buttons: [{ label: 'C’est parti !' }],
     });
     S.profile.onboarded = true;
+    S.records.news = NEWS[0]?.id;
+    S.records.grade = gradeOf(S.points.total);
     save(true);
   } catch (e) { if (e !== ABORT) console.error(e); }
   stage.close();
@@ -988,6 +1116,7 @@ function start() {
 }
 
 applyTheme();
+applyPalette();
 addEventListener('scroll', () => document.documentElement.style.setProperty('--edge', `${Math.max(0, Math.min(scrollY, 32))}px`), { passive: true });
 document.addEventListener('touchstart', () => {}, { passive: true }); // sans écouteur tactile, Safari iOS n'applique pas :active
 navigator.storage?.persist?.();
