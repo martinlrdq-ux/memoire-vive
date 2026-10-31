@@ -3,6 +3,14 @@
 // items : [icône, titre, texte] ; tab et cta : l'onglet à ouvrir et le libellé du bouton (facultatifs).
 export const NEWS = [
   {
+    id: '2026-10-31-idees-savoir',
+    title: 'Le hibou te souffle des idées',
+    items: [
+      ['🦉', 'Un moyen mnémo pour chaque fiche', 'Les 186 fiches du Savoir du jour ont maintenant leur idée : une rime, un jeu de mots, la forme des chiffres… Touche « Je la garde », ou invente la tienne.'],
+      ['🔐', 'Il revient quand ça coince', 'Si une fiche t’échappe, dans la séance ou plus tard dans le Coffre, l’idée du hibou réapparaît avec la réponse.'],
+    ],
+  },
+  {
     id: '2026-10-31-grades',
     title: 'Ton hibou prend du galon',
     items: [

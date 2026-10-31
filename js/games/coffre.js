@@ -5,7 +5,8 @@ import { recordReview, recordLoci } from '../core/engine.js';
 import { faceSVG } from '../core/faces.js';
 import { speak } from '../core/speech.js';
 import { gradeFor, listResultView } from './common.js';
-import { THEME_BY_ID } from '../data/culture.js';
+import { THEME_BY_ID, FACT_BY_ID } from '../data/culture.js';
+import { ideaHint } from './savoir.js';
 
 const SRC_LABEL = { mavie: 'Ma vie', story: 'Fil rouge', sketch: 'Croquis', names: 'Qui est-ce ?', digits: 'Code secret', palace: 'Palais', oral: 'Message reçu', reading: 'Lecture active', vocab: "Mots d'ailleurs", weekend: 'Défi du week-end', culture: 'Savoir du jour', major: 'Mes 100 images' };
 
@@ -31,6 +32,7 @@ function hintBlock(item) {
   if (!item.hint && !item.extra?.why) return '';
   return h('div', null,
     item.hint && h('div', { class: 'hint' }, h('span', { class: 'muted' }, 'Ton astuce : '), item.hint),
+    item.src === 'culture' && ideaHint(FACT_BY_ID[item.extra?.fid]?.idea, item.hint),
     item.extra?.why && h('p', { class: 'muted small' }, item.extra.why));
 }
 

@@ -1,5 +1,6 @@
 // Savoir du jour : quelques fiches d'histoire-géo par jour, encodées avec la technique qui leur va
-// (système majeur pour une date, mot-clé sonore pour une capitale, image pour un fait), puis confiées au Coffre.
+// (système majeur pour une date, mot-clé sonore pour une capitale, image pour un fait), avec pour chacune
+// une idée de moyen mnémotechnique proposée par le hibou, puis confiées au Coffre.
 import { h, screen, input, onEnter, matchAnswer, toast } from '../core/ui.js';
 import { S, save, shuffle, dayKey } from '../core/store.js';
 import { createItem, deleteItem, recordReview, queue, techUnlocked } from '../core/engine.js';
@@ -123,6 +124,17 @@ async function chooseThemes(stage) {
 
 // --- Encodage d'une fiche ------------------------------------------------------
 
+// L'idée du hibou : un moyen mnémotechnique prêt à l'emploi, à garder tel quel ou à remplacer par le sien.
+function ideaTip(f, field) {
+  const take = h('button', { class: 'btn ghost small', onclick: () => { field.value = f.idea; take.textContent = '✓ Gardée'; } }, 'Je la garde');
+  return h('div', { class: 'tip idea' }, h('p', null, h('strong', null, '🦉 L’idée du hibou : '), f.idea), take);
+}
+
+// Après un oubli : l'idée du hibou, sauf si elle est déjà dans l'astuce gardée.
+export const ideaHint = (idea, hint) => (idea && !hint?.includes(idea)
+  ? h('div', { class: 'hint' }, h('span', { class: 'muted' }, '🦉 L’idée du hibou : '), idea)
+  : null);
+
 function majorCoach(digits) {
   return h('div', { class: 'tip' },
     h('strong', null, 'Système majeur : '), majorWords(digits).map((p) => `${p.chunk} → ${p.word}`).join(' · '),
@@ -137,29 +149,20 @@ function encodeFact(stage, f, i, n, major) {
     const fImg = input({ placeholder: f.k === 'capitale' ? 'La scène qui relie ce mot-clé au lieu' : f.k === 'date' ? 'La scène qui relie l’événement et la date' : 'La scène qui relie la question et la réponse', autocapitalize: 'sentences' });
     if (fKey) onEnter(fKey, () => fImg.focus());
     const go = () => {
-      if (!fImg.value.trim() && !fKey?.value.trim()) toast('Une image, même rapide, aide beaucoup à retenir.');
+      if (!fImg.value.trim() && !fKey?.value.trim()) toast('Une image, même rapide, aide beaucoup à retenir. L’idée du hibou est là pour ça.');
       done({ key: fKey?.value.trim() || '', img: fImg.value.trim() });
     };
     onEnter(fImg, go);
     const digits = f.k === 'date' ? String(Math.abs(f.y)) : '';
-    let card, coach;
-    if (f.k === 'date') {
-      card = [h('div', { class: 'big-word' }, yearLabel(f.y)), h('p', { class: 'muted center' }, `${centuryOf(f.y)} · ${periodOf(f.y)}`), h('div', { class: 'prompt' }, f.ev)];
-      coach = major ? majorCoach(digits) : h('p', { class: 'tip' }, `💡 Donne un sens à ${digits} : découpe-le en blocs (un âge, une heure, un nombre qui se répète), puis glisse-le dans la scène de l’événement.`);
-    } else if (f.k === 'capitale') {
-      card = [h('div', { class: 'big-word' }, f.place), h('div', { class: 'translation' }, '→ ', shown(f))];
-      coach = !S.records.capitalExample
-        ? h('div', { class: 'tip' }, h('strong', null, 'Exemple : '), 'Canberra → « canne » et « bras » → un kangourou s’appuie sur une canne avec ses petits bras.')
-        : h('p', { class: 'tip' }, `💡 Trouve un mot qui sonne comme « ${shown(f)} », puis imagine-le avec un symbole ${f.of}.`);
-    } else {
-      card = [h('div', { class: 'prompt' }, f.q), h('div', { class: 'translation' }, shown(f))];
-      coach = h('p', { class: 'tip' }, '💡 Imagine une scène qui relie la question et la réponse : exagère, fais bouger, mets-toi dedans.');
-    }
+    const card = f.k === 'date' ? [h('div', { class: 'big-word' }, yearLabel(f.y)), h('p', { class: 'muted center' }, `${centuryOf(f.y)} · ${periodOf(f.y)}`), h('div', { class: 'prompt' }, f.ev)]
+      : f.k === 'capitale' ? [h('div', { class: 'big-word' }, f.place), h('div', { class: 'translation' }, '→ ', shown(f))]
+      : [h('div', { class: 'prompt' }, f.q), h('div', { class: 'translation' }, shown(f))];
     return h('div', { class: 'screen' },
       h('div', { class: 'muted center' }, `${theme.icon} ${theme.name} · ${i + 1} / ${n}`),
       card,
       h('div', { class: 'example' }, h('strong', null, 'Pourquoi ça compte : '), f.why),
-      coach,
+      f.idea && ideaTip(f, fImg),
+      f.k === 'date' && major && majorCoach(digits),
       fKey && h('label', { class: 'field' }, h('span', null, 'Mot-clé sonore'), fKey),
       h('label', { class: 'field' }, h('span', null, 'Ton image'), fImg),
       h('div', { class: 'screen-actions' }, h('button', { class: 'btn primary', onclick: go }, i + 1 < n ? 'Fiche suivante' : 'J’ai fini')));
@@ -196,7 +199,6 @@ export async function play(ctx) {
   for (let i = 0; i < n; i++) {
     stage.setProgress(i / n);
     encs.push(await encodeFact(stage, facts[i], i, n, major));
-    if (facts[i].k === 'capitale') S.records.capitalExample = true;
   }
   stage.setProgress(null);
 
@@ -213,7 +215,7 @@ export async function play(ctx) {
       fields: [input(f.k === 'date' ? { placeholder: 'L’année', inputmode: 'numeric' } : { placeholder: 'Ta réponse', autocapitalize: 'sentences' })],
       check: ([v]) => (matchAnswer(v, answer)
         ? { ok: true, title: `✓ ${shown(f)}` }
-        : { ok: false, title: `✗ C’était : ${shown(f)}`, detail: hint ? h('div', { class: 'hint' }, h('span', { class: 'muted' }, 'Ton astuce : '), hint) : null }),
+        : { ok: false, title: `✗ C’était : ${shown(f)}`, detail: [hint ? h('div', { class: 'hint' }, h('span', { class: 'muted' }, 'Ton astuce : '), hint) : null, ideaHint(f.idea, hint)] }),
       next: i + 1 < order.length ? 'Suivant' : 'Voir le résultat',
     });
     if (good) ok++;

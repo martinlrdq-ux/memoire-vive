@@ -1,5 +1,5 @@
 // Généré par tools/build_sw.py : ne pas modifier à la main.
-const VERSION = 'a2b76ae4f7';
+const VERSION = 'c3e7383476';
 const CACHE = `memoire-${VERSION}`;
 const ASSETS = [
   './',
@@ -28,6 +28,7 @@ const ASSETS = [
   'js/data/culture.js',
   'js/data/major.js',
   'js/data/messages.js',
+  'js/data/mnemo.js',
   'js/data/news.js',
   'js/data/palaces.js',
   'js/data/people.js',

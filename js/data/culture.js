@@ -2,6 +2,7 @@
 // Dans chaque thématique, on va de l'essentiel vers le détail. Trois sortes de fiches :
 // date (on retient l'année), capitale (mot-clé sonore), fait (une question, une réponse).
 // Les identifiants ne doivent jamais changer : ils disent quelles fiches sont déjà apprises.
+import { MNEMO } from './mnemo.js';
 
 export const THEMES = [
   { id: 'reperes', group: 'Histoire', icon: '🧭', name: 'Les grands repères', desc: 'Les grandes périodes et les dates clés : le squelette sur lequel tout le reste s’accroche.' },
@@ -239,7 +240,10 @@ const BY_THEME = {
   ],
 };
 
-export const FACTS = Object.entries(BY_THEME).flatMap(([theme, list]) => list.map((f) => ({ ...f, theme })));
+// Chaque fiche reçoit son idée de moyen mnémotechnique (mnemo.js), proposée par le hibou.
+export const FACTS = Object.entries(BY_THEME).flatMap(([theme, list]) => list.map((f) => ({ ...f, theme, idea: MNEMO[f.id] })));
+
+export const FACT_BY_ID = Object.fromEntries(FACTS.map((f) => [f.id, f]));
 
 // La question posée dans le Coffre, et la réponse attendue.
 export function factPrompt(f) {
