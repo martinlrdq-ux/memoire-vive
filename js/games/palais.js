@@ -403,7 +403,7 @@ export async function storeInPalace(stage, { title, items, hint = '', cat = 'lis
     });
   }
   const answers = await recallOrdered(stage, { title, subtitle: 'Qu’as-tu rangé ici ?', n, cues: loci });
-  const { res, score } = listScore(answers, items, true);
+  const { res, score, places } = listScore(answers, items, true);
   recordLoci(palace.id, loci, res);
   createItem({
     type: 'list', src, prompt: title, answer: items, hint: [hint, ...images].filter(Boolean).join(' · '),
@@ -412,7 +412,7 @@ export async function storeInPalace(stage, { title, items, hint = '', cat = 'lis
   await resultScreen(stage, {
     score,
     text: 'Rangé dans le Coffre. Ce soir, je te redemande la promenade, puis elle reviendra juste avant l’oubli.',
-    body: listResultView(items, res, { cues: loci, answers }),
+    body: listResultView(items, res, { cues: loci, places }),
   });
 }
 
@@ -519,7 +519,7 @@ export async function play(ctx) {
   await screen(stage, { icon: '🚶', title: 'La promenade', text: 'Ferme les yeux quelques secondes et refais la promenade dans ta tête, lieu après lieu.', buttons: [{ label: 'C’est fait' }] });
   await recallBreak(ctx, 'Refais la promenade et retrouve l’élément déposé sur chaque lieu.');
   const answers = await recallOrdered(stage, { title: palace.name, subtitle: 'Qu’as-tu déposé ici ?', n, cues: loci });
-  const { res, score } = listScore(answers, items, true);
+  const { res, score, places } = listScore(answers, items, true);
   recordLoci(palace.id, loci, res);
   let pts = 0;
   let extra = null;
@@ -538,6 +538,6 @@ export async function play(ctx) {
     if (n >= 50 && score >= 0.8) S.records.palace50 = true;
     save();
   }
-  await resultScreen(stage, { score, pts, body: h('div', null, extra, listResultView(items, res, { cues: loci, answers })) });
+  await resultScreen(stage, { score, pts, body: h('div', null, extra, listResultView(items, res, { cues: loci, places })) });
   return { score };
 }

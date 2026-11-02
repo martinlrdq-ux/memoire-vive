@@ -4,7 +4,7 @@ import { dayKey, dayDiff, shuffle } from '../core/store.js';
 import { recordReview, recordLoci } from '../core/engine.js';
 import { faceSVG } from '../core/faces.js';
 import { speak } from '../core/speech.js';
-import { gradeFor, listResultView } from './common.js';
+import { gradeFor, listResultView, digitDiff } from './common.js';
 import { THEME_BY_ID, FACT_BY_ID } from '../data/culture.js';
 import { ideaHint } from './savoir.js';
 
@@ -123,7 +123,7 @@ function reviewCode(stage, item) {
       btn.remove();
       const ok = score === 1;
       feedback.replaceChildren(
-        h('div', { class: `feedback ${ok ? 'ok' : score >= 0.8 ? 'mid' : 'ko'}` }, h('div', { class: 'fb-title' }, ok ? '✓ Parfait' : `${Math.round(score * 100)} % des chiffres à la bonne place`), h('div', { class: 'fb-answer mono' }, item.answer.replace(/(\d{2})(?=\d)/g, '$1 '))),
+        h('div', { class: `feedback ${ok ? 'ok' : score >= 0.8 ? 'mid' : 'ko'}` }, h('div', { class: 'fb-title' }, ok ? '✓ Parfait' : `${Math.round(score * 100)} % des chiffres retrouvés`), ok ? h('div', { class: 'fb-answer mono' }, item.answer.replace(/(\d{2})(?=\d)/g, '$1 ')) : digitDiff(item.answer, f.value, { pairs: true })),
         hintBlock(item),
         ok ? gradeButtons((g) => done({ g, typed: true, score })) : h('button', { class: 'btn primary', onclick: () => done({ g: gradeFor(score) === 3 ? 2 : gradeFor(score), typed: true, score }) }, 'Suivant'));
     };
@@ -151,14 +151,14 @@ function reviewList(stage, item) {
     const feedback = h('div');
     const btn = h('button', { class: 'btn primary', onclick: () => {
       const answers = fields.map((f) => f.value);
-      const { res, score } = listScore(answers, item.answer, ordered);
+      const { res, score, places } = listScore(answers, item.answer, ordered, { byPlace: jumbled });
       if (ordered) recordLoci(item.extra.palace, cues, res);
       list.remove();
       btn.remove();
       const g = gradeFor(score);
       feedback.replaceChildren(
         h('div', { class: `feedback ${score >= 0.9 ? 'ok' : score >= 0.6 ? 'mid' : 'ko'}` }, h('div', { class: 'fb-title' }, `${Math.round(score * 100)} % retrouvés`)),
-        listResultView(item.answer, res, { cues, answers: ordered ? answers : null }),
+        listResultView(item.answer, res, { cues, places }),
         hintBlock(item),
         g === 3 ? gradeButtons((gg) => done({ g: gg, typed: true, score })) : h('button', { class: 'btn primary', onclick: () => done({ g, typed: true, score }) }, 'Suivant'));
     } }, 'Valider');

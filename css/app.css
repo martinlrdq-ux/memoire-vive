@@ -636,9 +636,11 @@ details.why p, details.why ul { margin-top: 8px; }
 .result-list li { padding: 10px 12px; border-radius: var(--radius-s); font-size: 15px; overflow-wrap: anywhere; }
 .result-list li.ok { background: var(--success-soft); }
 .result-list li.ko { background: var(--danger-soft); }
+.result-list li.mid { background: var(--warn-soft); }
 .result-list .mark { font-weight: 800; margin-right: 8px; }
 .result-list li.ok .mark { color: var(--success); }
 .result-list li.ko .mark { color: var(--danger); }
+.result-list li.mid .mark { color: var(--warn); }
 .reading { background: var(--card); border-radius: var(--radius-m); padding: 18px; font-size: 18px; line-height: 1.6; text-align: left; }
 .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .summary-grid > div { background: var(--row); border: 2px solid var(--line); border-radius: var(--radius-m); box-shadow: var(--shadow-row); padding: 14px; display: flex; flex-direction: column; text-align: center; }

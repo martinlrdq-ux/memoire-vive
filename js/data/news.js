@@ -3,6 +3,15 @@
 // items : [icône, titre, texte] ; tab et cta : l'onglet à ouvrir et le libellé du bouton (facultatifs).
 export const NEWS = [
   {
+    id: '2026-11-02-notation',
+    title: 'Une note plus juste',
+    items: [
+      ['🎯', 'Un oubli ne coûte plus toute la suite', 'Si tu sautes un mot, les suivants comptent quand même : les bons mots, dans le bon ordre, juste décalés d’une case.'],
+      ['🔢', 'Pareil pour les chiffres oubliés', 'Oublier les 2 premiers chiffres d’un code de 6, ça fait 67 %, plus 0 %. Ceux qui manquent s’affichent en rouge. Des chiffres mélangés, eux, restent faux.'],
+      ['↕️', 'Le désordre compte pour moitié', 'Un mot retrouvé mais hors de l’ordre rapporte la moitié. Quand les lieux d’un palais sont demandés dans le désordre, seul le bon lieu compte.'],
+    ],
+  },
+  {
     id: '2026-10-31-idees-savoir',
     title: 'Le hibou te souffle des idées',
     items: [

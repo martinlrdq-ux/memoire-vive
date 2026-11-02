@@ -4,7 +4,7 @@ import { S, save, pick } from '../core/store.js';
 import { NAMES_F, NAMES_M } from '../data/people.js';
 import { MAJOR_SOUNDS, MAJOR_ORDER, majorWords, majorLearned } from '../data/major.js';
 import { levelInfo, startBatch, createItem, recordReview, techUnlocked } from '../core/engine.js';
-import { intro, recallBreak, resultScreen, gradeFor } from './common.js';
+import { intro, recallBreak, resultScreen, gradeFor, digitDiff } from './common.js';
 
 const CONTEXTS = [
   () => `Le code du casier de ${pick(NAMES_F)}`,
@@ -113,7 +113,7 @@ export async function play(ctx) {
   const r = recordReview(item, g, { score, ctx: 'i', annex: ctx.annex });
   // « Mes 100 images » s'ouvre avec le chapitre des chiffres.
   const learnMore = mode === 'major' && techUnlocked('digits') && majorLearned().size < MAJOR_ORDER.length;
-  await resultScreen(stage, { score, pts: r.pts, body: h('div', null, h('div', { class: 'big-digits mono' }, digits.replace(/(\d{2})(?=\d)/g, '$1 ')), h('p', { class: 'muted' }, `Tu as écrit : ${ans || '—'}`), h('p', { class: 'hint' }, hint),
+  await resultScreen(stage, { score, pts: r.pts, body: h('div', null, digitDiff(digits, ans, { pairs: true, cls: 'big-digits' }), h('p', { class: 'hint' }, hint),
     learnMore && h('p', { class: 'tip' }, '💡 Pour aller plus vite : apprends tes images par cœur, 10 par jour, dans Jeux › Exercices annexes › « Mes 100 images ».')) });
   return { score };
 }

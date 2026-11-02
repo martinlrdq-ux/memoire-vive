@@ -233,24 +233,96 @@ export function matchAnswer(user, expected) {
 export function digitScore(user, expected) {
   const u = digitsOf(user), e = digitsOf(expected);
   if (!e.length) return 0;
-  let ok = 0;
-  for (let i = 0; i < e.length; i++) if (u[i] === e[i]) ok++;
-  return ok / e.length;
+  return digitHits(u, e).filter(Boolean).length / Math.max(u.length, e.length);
 }
 
-// Score d'une liste rappelée : ordonnée (position par position) ou libre.
-export function listScore(answers, expected, ordered) {
+// Aligne ce qui a été rendu sur ce qui était attendu, avec le moins de retouches possible (à égalité, le plus de
+// réponses justes) : un élément oublié ou ajouté ne fait pas tomber tous les suivants. Rend, pour chaque attendu,
+// l'indice du rendu placé en face (-1 s'il n'y en a pas) et si les deux sont identiques.
+function alignSeq(n, m, same) {
+  const W = n + m + 1;
+  const c = Array.from({ length: n + 1 }, (_, i) => Array.from({ length: m + 1 }, (_, j) => ((n - i) + (m - j)) * W));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      c[i][j] = Math.min((same(i, j) ? -1 : W) + c[i + 1][j + 1], W + c[i + 1][j], W + c[i][j + 1]);
+    }
+  }
+  const at = Array(n).fill(-1), hit = Array(n).fill(false);
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    const s = same(i, j);
+    if (c[i][j] === (s ? -1 : W) + c[i + 1][j + 1]) { at[i] = j; hit[i] = s; i++; j++; }
+    else if (c[i][j] === W + c[i + 1][j]) i++;
+    else j++;
+  }
+  return { at, hit };
+}
+
+// Pour chaque chiffre attendu, s'il a été retrouvé. À longueur égale, on compare case par case : des chiffres mal placés sont
+// faux, même s'ils forment un bout de la suite. Un décalage ne s'accepte que s'il vient de chiffres oubliés ou en trop :
+// on saute exactement cette différence, là où elle rend le plus de chiffres justes.
+export function digitHits(user, expected) {
+  const u = digitsOf(user), e = digitsOf(expected);
+  const typedShort = u.length <= e.length;
+  const a = typedShort ? u : e, b = typedShort ? e : u;
+  const gap = b.length - a.length;
+  const best = Array.from({ length: a.length + 1 }, () => Array(gap + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--) {
+    for (let g = 0; g <= gap; g++) {
+      const face = (a[i] === b[i + gap - g] ? 1 : 0) + best[i + 1][g];
+      best[i][g] = g ? Math.max(face, best[i][g - 1]) : face;
+    }
+  }
+  const hits = Array(e.length).fill(false);
+  for (let i = 0, g = gap; i < a.length;) {
+    const j = i + gap - g;
+    const same = a[i] === b[j];
+    if ((same ? 1 : 0) + best[i + 1][g] === best[i][g]) { if (same) hits[typedShort ? j : i] = true; i++; }
+    else g--;
+  }
+  return hits;
+}
+
+// Score d'une liste rappelée, libre ou ordonnée. Dans l'ordre, un mot oublié ne fait pas tomber les suivants : décalés, ils
+// comptent quand même (res vrai), et un mot retrouvé hors de l'ordre compte pour moitié (res faux, pour que son lieu reste à revoir).
+// places dit pour chaque attendu ce qui s'est passé : ok, shift (décalé), moved (hors de l'ordre) ou miss, avec le mot écrit à la place.
+// byPlace : les lieux sont demandés dans le désordre, il n'y a pas de suite à aligner et seul compte ce qui est écrit en face de chacun.
+export function listScore(answers, expected, ordered, { byPlace = false } = {}) {
   const res = expected.map(() => false);
-  if (ordered) {
-    expected.forEach((e, i) => { res[i] = matchAnswer(answers[i] || '', e); });
-  } else {
+  const total = Math.max(1, expected.length);
+  if (!ordered) {
     const pool = answers.filter((a) => a && a.trim());
     expected.forEach((e, i) => {
       const k = pool.findIndex((a) => matchAnswer(a, e));
       if (k >= 0) { res[i] = true; pool.splice(k, 1); }
     });
+    return { res, score: res.filter(Boolean).length / total };
   }
-  return { res, score: res.filter(Boolean).length / Math.max(1, expected.length) };
+  if (byPlace) {
+    const places = expected.map((e, i) => {
+      res[i] = matchAnswer(answers[i] || '', e);
+      return res[i] ? { state: 'ok' } : { state: 'miss', typed: answers[i] };
+    });
+    return { res, places, score: res.filter(Boolean).length / total };
+  }
+  const given = answers.map((a, j) => ({ a, j })).filter(({ a }) => a && a.trim());
+  const same = expected.map((e) => given.map(({ a }) => matchAnswer(a, e)));
+  const { at, hit } = alignSeq(expected.length, given.length, (i, j) => same[i][j]);
+  const used = new Set(at.filter((_, i) => hit[i]));
+  const places = expected.map((_, i) => {
+    res[i] = hit[i];
+    return { state: !hit[i] ? 'miss' : given[at[i]].j === i ? 'ok' : 'shift' };
+  });
+  places.forEach((p, i) => {
+    if (p.state !== 'miss') return;
+    const k = given.findIndex((_, j) => same[i][j] && !used.has(j));
+    if (k >= 0) { p.state = 'moved'; used.add(k); }
+  });
+  places.forEach((p, i) => {
+    if (p.state === 'miss' && at[i] >= 0 && !used.has(at[i])) p.typed = given[at[i]].a;
+  });
+  const moved = places.filter((p) => p.state === 'moved').length;
+  return { res, places, score: (res.filter(Boolean).length + moved / 2) / total };
 }
 
 export function esc(s) {

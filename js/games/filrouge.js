@@ -32,10 +32,10 @@ export async function play(ctx) {
   const story = await encodeStory(stage, words);
   await recallBreak(ctx, 'Retrouve les objets dans l’ordre, en te racontant ton histoire.');
   const answers = await recallOrdered(stage, { title: 'Dans l’ordre', subtitle: 'Suis le fil de ton histoire.', n });
-  const { res, score } = listScore(answers, words, true);
+  const { res, score, places } = listScore(answers, words, true);
   const batch = startBatch('story', n);
   const item = createItem({ type: 'list', src: 'story', prompt: `Fil rouge du ${fmtDay(dayKey(), { day: 'numeric', month: 'long' })}`, answer: words, hint: story, extra: { ordered: true }, batch });
   const r = recordReview(item, gradeFor(score), { score, ctx: 'i', annex: ctx.annex });
-  await resultScreen(stage, { score, pts: r.pts, body: h('div', null, listResultView(words, res, { answers }), h('p', { class: 'muted' }, 'Demain, le Coffre te redemandera cette liste.')) });
+  await resultScreen(stage, { score, pts: r.pts, body: h('div', null, listResultView(words, res, { places }), h('p', { class: 'muted' }, 'Demain, le Coffre te redemandera cette liste.')) });
   return { score };
 }

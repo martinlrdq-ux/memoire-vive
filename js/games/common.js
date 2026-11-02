@@ -1,5 +1,5 @@
 // Briques communes aux jeux : présentation de la technique, pause avant rappel, saisie de listes.
-import { h, screen, input, onEnter, matchAnswer, digitsOf } from '../core/ui.js';
+import { h, screen, input, onEnter, matchAnswer, digitsOf, digitHits } from '../core/ui.js';
 import { S, save } from '../core/store.js';
 import { CATALOG } from './catalog.js';
 
@@ -101,20 +101,34 @@ export function askChecked(stage, { top, fields, check, next = 'Suivant' }) {
   });
 }
 
-// Suite de chiffres attendue, les chiffres mal placés en rouge, et ce qui a été tapé.
-export function digitDiff(expected, typed) {
+// Suite de chiffres attendue, les chiffres non retrouvés en rouge, et ce qui a été tapé.
+// pairs : groupés par deux, comme à l'apprentissage ; cls : le style du grand affichage.
+export function digitDiff(expected, typed, { pairs = false, cls = 'fb-answer' } = {}) {
   const t = digitsOf(typed);
+  const hits = digitHits(t, expected);
   return h('div', null,
-    h('div', { class: 'fb-answer mono digit-diff' }, [...expected].map((d, i) => h('span', { class: t[i] === d ? null : 'bad' }, d))),
+    h('div', { class: `${cls} mono digit-diff` }, [...expected].flatMap((d, i) => [pairs && i && i % 2 === 0 ? ' ' : null, h('span', { class: hits[i] ? null : 'bad' }, d)])),
     h('div', { class: 'muted' }, `Tu as tapé : ${t || '—'}`));
 }
 
-export function listResultView(expected, res, { cues, answers } = {}) {
-  return h('ul', { class: 'result-list' }, expected.map((e, i) => h('li', { class: res[i] ? 'ok' : 'ko' },
-    h('span', { class: 'mark' }, res[i] ? '✓' : '✗'),
-    cues && h('span', { class: 'muted' }, `${cues[i].e} ${cues[i].l} · `),
-    h('strong', null, e),
-    !res[i] && answers && answers[i] ? h('span', { class: 'muted' }, ` (tu as écrit « ${answers[i]} »)`) : null)));
+const PLACE_NOTE = {
+  shift: 'Décalé : le bon mot, dans le bon ordre, mais pas dans la bonne case. Il compte quand même.',
+  moved: 'Pas à sa place : retrouvé, mais hors de l’ordre. Il compte pour moitié.',
+};
+
+export function listResultView(expected, res, { cues, places } = {}) {
+  const notes = ['shift', 'moved'].filter((k) => places?.some((p) => p.state === k));
+  const list = h('ul', { class: 'result-list' }, expected.map((e, i) => {
+    const { state, typed } = places?.[i] || {};
+    return h('li', { class: res[i] ? 'ok' : state === 'moved' ? 'mid' : 'ko' },
+      h('span', { class: 'mark' }, res[i] ? '✓' : state === 'moved' ? '↕' : '✗'),
+      cues && h('span', { class: 'muted' }, `${cues[i].e} ${cues[i].l} · `),
+      h('strong', null, e),
+      state === 'shift' && h('span', { class: 'muted' }, ' · décalé'),
+      state === 'moved' && h('span', { class: 'muted' }, ' · pas à sa place'),
+      typed ? h('span', { class: 'muted' }, ` (tu as écrit « ${typed} »)`) : null);
+  }));
+  return notes.length ? h('div', { class: 'stack' }, notes.map((k) => h('p', { class: 'muted small' }, PLACE_NOTE[k])), list) : list;
 }
 
 export const gradeFor = (score) => (score >= 0.9 ? 3 : score >= 0.6 ? 2 : 1);
