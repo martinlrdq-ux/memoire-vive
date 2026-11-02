@@ -3,6 +3,14 @@
 // items : [icône, titre, texte] ; tab et cta : l'onglet à ouvrir et le libellé du bouton (facultatifs).
 export const NEWS = [
   {
+    id: '2026-11-02-indices',
+    title: 'Un indice pour chaque liste',
+    items: [
+      ['🔤', 'Plus besoin de te souvenir de la date', 'Dans le Coffre, tes fils rouges, croquis, palais d’entraînement et défis du week-end ont un indice : « le premier mot commence par S ». Tu sais de quelle liste on parle.'],
+      ['🤏', 'Juste une lettre', 'Une seule initiale, et celle du mot suivant uniquement si deux de tes listes commencent pareil. Le reste, c’est à toi de le retrouver.'],
+    ],
+  },
+  {
     id: '2026-11-02-notation',
     title: 'Une note plus juste',
     items: [

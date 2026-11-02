@@ -1,6 +1,6 @@
 // Le Coffre : révision en rappel libre, correction immédiate, note honnête.
-import { h, screen, input, onEnter, matchAnswer, digitScore, listScore, pointsPop, esc } from '../core/ui.js';
-import { dayKey, dayDiff, shuffle } from '../core/store.js';
+import { h, screen, input, onEnter, matchAnswer, norm, digitScore, listScore, pointsPop, esc } from '../core/ui.js';
+import { S, dayKey, dayDiff, shuffle } from '../core/store.js';
 import { recordReview, recordLoci } from '../core/engine.js';
 import { faceSVG } from '../core/faces.js';
 import { speak } from '../core/speech.js';
@@ -133,6 +133,27 @@ function reviewCode(stage, item) {
   });
 }
 
+// Les listes tirées au hasard ne se distinguent que par leur date, qu'on ne retient pas : on ne sait plus laquelle est demandée.
+// On donne l'initiale de leur premier mot, et celle du suivant seulement si une liste du même genre commence pareil.
+const DATED_LISTS = ['story', 'sketch', 'weekend', 'palace'];
+
+function listInitials(item) {
+  if (!DATED_LISTS.includes(item.src) || item.extra?.stored) return [];
+  const initial = (w) => norm(w)[0];
+  const others = Object.values(S.items).filter((o) => o.id !== item.id && o.type === 'list' && o.src === item.src && !o.extra?.stored && o.extra?.palace === item.extra?.palace);
+  const max = Math.min(3, item.answer.length - 1);
+  let n = 1;
+  while (n < max && others.some((o) => item.answer.slice(0, n).every((w, i) => initial(w) === initial(o.answer[i] || '')))) n++;
+  return item.answer.slice(0, n).map((w) => w[0].toUpperCase());
+}
+
+function initialsLine({ ordered, cues }, letters) {
+  const who = (i) => (cues ? (i ? `celui de «\u00a0${cues[i].l}\u00a0»` : `le mot de «\u00a0${cues[i].l}\u00a0»`)
+    : ordered ? ['le premier mot', 'le deuxième', 'le troisième'][i]
+      : i ? 'un autre' : 'un des mots');
+  return `Indice : ${letters.map((l, i) => `${who(i)}${i ? ' par' : ' commence par'}\u00a0${l}`).join(', ')}`;
+}
+
 // Une révision sur deux à partir de la troisième, les lieux d'un palais arrivent dans le désordre :
 // on vérifie le lien entre chaque lieu et son image (« Qu'y a-t-il sur le frigo ? »), pas seulement l'enchaînement.
 // Les réponses restent rangées par lieu : la correction se lit ensuite dans l'ordre de la promenade.
@@ -142,8 +163,9 @@ function reviewList(stage, item) {
   const jumbled = !!cues && n > 2 && (item.m.reps || 0) >= 2 && item.m.reps % 2 === 0;
   return stage.ask((done) => {
     const subtitle = jumbled ? `${n} lieux, dans le désordre : va directement à chacun` : ordered ? `${n} éléments, dans l’ordre` : `${n} éléments, dans n’importe quel ordre`;
-    const wrap = h('div', { class: 'screen review' }, header(item), h('div', { class: 'prompt' }, item.prompt), h('p', { class: 'muted center' }, subtitle));
-    const fields = Array.from({ length: n }, (_, i) => input({ placeholder: '…', 'aria-label': `Élément ${i + 1}` }));
+    const letters = listInitials(item);
+    const wrap = h('div', { class: 'screen review' }, header(item), h('div', { class: 'prompt' }, item.prompt), h('p', { class: 'muted center' }, subtitle), letters.length ? h('p', { class: 'list-cue' }, initialsLine(item.extra, letters)) : '');
+    const fields = Array.from({ length: n }, (_, i) => input({ placeholder: `${letters[i] || ''}…`, 'aria-label': `Élément ${i + 1}` }));
     const shown = jumbled ? shuffle(fields.map((_, i) => i)) : fields.map((_, i) => i);
     shown.forEach((i, k) => onEnter(fields[i], () => (k + 1 < n ? fields[shown[k + 1]].focus() : fields[i].blur())));
     fields[shown[0]].setAttribute('data-autofocus', '');
