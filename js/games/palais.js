@@ -514,7 +514,10 @@ export async function play(ctx) {
   const items = sample(GAME_WORDS, n);
   const loci = lociFor(palace, n);
   if (ctx.chrono) await screen(stage, { icon: '⏱️', title: 'Défi chrono', text: `${n} éléments à déposer le plus vite possible, puis à restituer. Le chrono démarre maintenant.`, buttons: [{ label: 'Go !' }] });
-  else if (ctx.palace) await screen(stage, { icon: palace.icon, title: palace.name, text: [`C’est l’entraînement : ${n} mots au hasard, un sur chaque endroit de ton palais.`, 'Pour chacun, imagine une scène un peu folle sur l’endroit indiqué (l’encadré 💡 te donne une idée), puis touche cet endroit.', 'À la fin, tu refais le tour dans ta tête et tu retrouves les mots.'], buttons: [{ label: 'C’est parti' }] });
+  else if (ctx.palace) {
+    const lv = levelInfo('palace');
+    await screen(stage, { icon: palace.icon, title: palace.name, text: [`C’est l’entraînement : ${n} mots au hasard, un sur chaque endroit de ton palais.`, 'Pour chacun, imagine une scène un peu folle sur l’endroit indiqué (l’encadré 💡 te donne une idée), puis touche cet endroit.', 'À la fin, tu refais le tour dans ta tête et tu retrouves les mots.', ...(n < lv.size && !lv.mastered ? [`Ton palais n’a que ${n} lieux : cette partie ne compte pas pour le niveau ${lv.i + 1}, qui demande ${lv.size} éléments.`] : [])], buttons: [{ label: 'C’est parti' }] });
+  }
   const { images, ms } = await placeItems(stage, items, loci, { chrono: ctx.chrono });
   await screen(stage, { icon: '🚶', title: 'La promenade', text: 'Ferme les yeux quelques secondes et refais la promenade dans ta tête, lieu après lieu.', buttons: [{ label: 'C’est fait' }] });
   await recallBreak(ctx, 'Refais la promenade et retrouve l’élément déposé sur chaque lieu.');

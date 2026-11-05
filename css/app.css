@@ -492,6 +492,12 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-mut
 .kv { list-style: none; padding: 0; margin: 0 0 12px; }
 .kv li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 2px solid var(--line); font-size: 15px; }
 .kv li:last-child { border-bottom: 0; }
+.kv li.level-row { display: block; }
+.level-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.level-runs { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-muted); }
+.level-runs .run { white-space: nowrap; font-weight: 600; }
+.level-runs .run.ok { color: var(--success); }
+.level-runs .run.ko { color: var(--danger); }
 .item-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .item-list li { display: flex; gap: 12px; align-items: center; padding: 10px 12px; background: var(--row); border: 2px solid var(--line); border-radius: var(--radius-m); box-shadow: var(--shadow-row); }
 .item-icon { font-size: 22px; width: 40px; height: 40px; border-radius: 50%; background: var(--card); display: grid; place-items: center; flex-shrink: 0; }

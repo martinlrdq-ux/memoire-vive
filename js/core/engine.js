@@ -112,7 +112,15 @@ export function createItem({ type = 'card', src, prompt, answer, hint = '', extr
 }
 
 export function deleteItem(id) {
+  const bid = S.items[id]?.batch;
   delete S.items[id];
+  // Sans cet élément, sa partie n'attend plus son rappel : elle se termine avec ceux qui restent.
+  const b = bid && S.batches[bid];
+  if (b && !b.done && !(id in b.res)) {
+    b.items = b.items.filter((x) => x !== id);
+    if (!b.items.length) delete S.batches[bid];
+    else batchResult(bid);
+  }
   save();
 }
 
@@ -239,8 +247,8 @@ export function levelInfo(tech) {
 function batchResult(bid, itemId, score) {
   const b = S.batches[bid];
   if (!b || b.done) return;
-  b.res[itemId] = score;
-  if (Object.keys(b.res).length < b.items.length) return;
+  if (itemId) b.res[itemId] = score;
+  if (!b.items.every((id) => id in b.res)) return;
   b.done = true;
   const vals = Object.values(b.res);
   b.score = vals.reduce((a, x) => a + x, 0) / vals.length;
@@ -253,32 +261,67 @@ function batchResult(bid, itemId, score) {
   if (b.tech === 'palace' && b.size >= 20 && b.score >= 0.8) S.records.palace20 = true;
   if (b.tech === 'palace' && b.size >= 50 && b.score >= 0.8) S.records.palace50 = true;
 
+  // Une partie plus longue que le niveau compte aussi : remplir un palais de 10 lieux au niveau 1 (5 éléments), par exemple.
   const lv = levelInfo(b.tech);
-  if (b.li !== lv.i || b.size !== lv.size || b.chrono) {
-    toast(`${tech.name} : ${pct} % au rappel différé`);
+  if (b.li !== lv.i || b.size < lv.size || b.chrono) {
+    toast(`${tech.name} : ${pct} % au rappel différé${b.li !== lv.i ? ' (partie d’un niveau précédent)' : b.size < lv.size ? ` (${b.size} ${tech.unit}, ton niveau en demande ${lv.size})` : ''}`);
     return;
   }
-  const st = (S.levels[b.tech] = S.levels[b.tech] || { i: 0, wins: 0 });
-  if (b.score >= 0.8) {
-    st.wins++;
-    if (st.wins >= 2) {
-      if (lv.max) {
-        st.mastered = true;
-        st.wins = 2;
-        toast(`${tech.name} : niveau maximum maîtrisé 🏆`, 'gold');
-      } else {
-        st.i++;
-        st.wins = 0;
-        toast(`${tech.name} : niveau ${st.i + 1} débloqué (${tech.levels[st.i]} ${tech.unit}) 🎉`, 'gold');
-      }
-    } else {
-      toast(`${tech.name} : ${pct} % le lendemain ✓ (1/2 vers le niveau suivant)`, 'ok');
-    }
-  } else {
-    toast(`${tech.name} : ${pct} % au rappel du lendemain. Le niveau se valide à 80 %.`);
-  }
+  b.counted = true;
+  if (b.score >= 0.8) winToast(b.tech, addWin(b.tech), `${pct} % le lendemain ✓`);
+  else toast(`${tech.name} : ${pct} % au rappel du lendemain. Le niveau se valide à 80 %.`);
   save();
   checkChapter();
+}
+
+// Un rappel du lendemain réussi : un point vers le niveau suivant, qui se débloque au deuxième.
+function addWin(id) {
+  const st = (S.levels[id] = S.levels[id] || { i: 0, wins: 0 });
+  st.wins++;
+  if (st.wins < 2) return 'win';
+  if (st.i === TECHS[id].levels.length - 1) { st.mastered = true; st.wins = 2; return 'mastered'; }
+  st.i++;
+  st.wins = 0;
+  return 'up';
+}
+
+function winToast(id, r, what) {
+  const t = TECHS[id];
+  if (r === 'mastered') toast(`${t.name} : niveau maximum maîtrisé 🏆`, 'gold');
+  else if (r === 'up') toast(`${t.name} : niveau ${S.levels[id].i + 1} débloqué (${t.levels[S.levels[id].i]} ${t.unit}) 🎉`, 'gold');
+  else toast(`${t.name} : ${what} (1/2 vers le niveau suivant)`, 'ok');
+}
+
+// Les dernières parties du niveau en cours et le score de leur rappel du lendemain (page Progrès).
+export function levelRuns(tech, max = 3) {
+  const lv = levelInfo(tech);
+  return Object.values(S.batches)
+    .filter((b) => b.tech === tech && b.li === lv.i && !b.chrono && (b.done || b.items.some((id) => S.items[id] && !(id in b.res))))
+    .slice(-max)
+    .map((b) => (b.done
+      ? { day: b.day, pct: Math.round(b.score * 100), ok: b.score >= 0.8 && b.size >= lv.size, short: b.size < lv.size }
+      : { day: b.day, due: Math.min(...b.items.filter((id) => S.items[id] && !(id in b.res)).map((id) => S.items[id].due)) }));
+}
+
+// Réparations faites une seule fois (novembre 2026) :
+// - une partie dont un élément a été supprimé du Coffre attendait ce rappel pour toujours ;
+// - un palais rempli depuis « Mes palais » (10 lieux au moins) ne comptait pas tant que le niveau demandait moins.
+export function repairLevels() {
+  if (S.records.levelsRepaired) return;
+  S.records.levelsRepaired = true;
+  for (const b of Object.values(S.batches)) {
+    if (b.done) continue;
+    b.items = b.items.filter((id) => S.items[id] || id in b.res);
+    if (!b.items.length) delete S.batches[b.id];
+    else batchResult(b.id);
+  }
+  for (const b of Object.values(S.batches)) {
+    const lv = TECHS[b.tech] && levelInfo(b.tech);
+    if (!lv || !b.done || b.counted || b.chrono || lv.mastered || b.li !== lv.i || b.size <= lv.size || b.score < 0.8) continue;
+    b.counted = true;
+    winToast(b.tech, addWin(b.tech), `un palais rempli de ${b.size} lieux compte enfin ✓`);
+  }
+  save();
 }
 
 // --- Parcours ------------------------------------------------------------------

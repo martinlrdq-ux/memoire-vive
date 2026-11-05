@@ -5,6 +5,7 @@ import {
   TECHS, CHAPTERS, MAINTENANCE, DISTRICTS, BADGES, rank, queue, forecast, levelInfo, sessionToday, techniqueOfDay,
   streakCount, jokersLeft, pointsToday, createItem, deleteItem, chapterProgress, techUnlocked, STAR_COLORS, tapStar,
   retention7, retentionByWeek, difficultyInsight, bilanStatus, checkinDue, updateStreak, checkChapter, checkBadges, districtOf, eveningDue,
+  levelRuns, repairLevels,
 } from './core/engine.js';
 import { CATALOG, ANNEXES } from './games/catalog.js';
 import {
@@ -555,10 +556,27 @@ const SAVOIR_TAG = { done: '✓ fait aujourd’hui', off: 'désactivé', empty: 
 
 // --- Jeux ---------------------------------------------------------------------------
 
-function levelChip(tech) {
+// Sur Jeux, ce que tu vas jouer ; sur Progrès, où tu en es du niveau suivant.
+function levelChip(tech, { wins = false } = {}) {
   const lv = levelInfo(tech);
   const t = TECHS[tech];
-  return h('span', { class: 'tag' }, lv.mastered ? `🏆 ${lv.size} ${t.unit}` : `Niv. ${lv.i + 1} · ${lv.size} ${t.unit} · ${lv.wins}/2`);
+  return h('span', { class: 'tag' }, lv.mastered ? `🏆 ${lv.size} ${t.unit}` : wins ? `Niv. ${lv.i + 1} · ${lv.wins}/2` : `Niv. ${lv.i + 1} · ${lv.size} ${t.unit}`);
+}
+
+// Les dernières parties du niveau, avec le score de leur rappel du lendemain : c'est lui qui fait bouger le 0/2.
+function levelRunsLine(tech) {
+  const lv = levelInfo(tech);
+  if (lv.mastered) return h('p', { class: 'level-runs' }, 'Niveau maximum maîtrisé.');
+  const runs = levelRuns(tech);
+  if (!runs.length) return h('p', { class: 'level-runs' }, 'Pas encore de partie à ce niveau.');
+  const day = (d) => fmtDay(d, { day: 'numeric', month: 'short' });
+  const when = (due) => {
+    const k = dayDiff(dayKey(), dayKey(due));
+    return k <= 0 ? 'rappel à faire' : k === 1 ? 'rappel demain' : `rappel le ${day(dayKey(due))}`;
+  };
+  const text = (r) => (r.due ? when(r.due) : r.short ? `${r.pct}\u00a0%, trop courte` : `${r.pct}\u00a0% ${r.ok ? '✓' : '✗'}`);
+  return h('p', { class: 'level-runs' }, 'Dernières parties : ',
+    runs.flatMap((r, i) => [i ? ' · ' : '', h('span', { class: `run ${r.due ? 'wait' : r.ok ? 'ok' : 'ko'}` }, `${day(r.day)} ${text(r)}`)]));
 }
 
 function unlockChapterOf(tech) {
@@ -803,8 +821,10 @@ function progresView() {
       bs.available && !delayedReady() && h('button', { class: 'btn secondary', onclick: runBilanStandalone }, `Passer le ${bs.label.toLowerCase()}`)),
     h('section', { class: 'card' },
       h('h2', null, '🧩 Niveaux par technique'),
-      h('p', { class: 'muted small' }, 'On monte d’un niveau après deux rappels du lendemain réussis à 80 % ou plus.'),
-      h('ul', { class: 'kv' }, TECH_ORDER.map((t) => h('li', null, h('span', null, `${TECHS[t].icon} ${TECHS[t].name}`), techUnlocked(t) ? levelChip(t) : h('small', { class: 'muted' }, '🔒'))))),
+      h('p', { class: 'muted small' }, 'Chaque partie revient le lendemain dans le Coffre. Si tu retrouves 80 % ou plus à ce premier rappel, tu marques un point. Au deuxième, tu passes au niveau suivant et le compteur repart à 0/2.'),
+      h('ul', { class: 'kv' }, TECH_ORDER.map((t) => (techUnlocked(t)
+        ? h('li', { class: 'level-row' }, h('div', { class: 'level-top' }, h('span', null, `${TECHS[t].icon} ${TECHS[t].name}`), levelChip(t, { wins: true })), levelRunsLine(t))
+        : h('li', null, h('span', null, `${TECHS[t].icon} ${TECHS[t].name}`), h('small', { class: 'muted' }, '🔒')))))),
     h('section', { class: 'card' },
       h('h2', null, '🎖️ Badges'),
       h('div', { class: 'badges' }, BADGES.map((b) => h('button', { class: `badge ${S.badges[b.id] ? 'on' : ''}`, onclick: () => sheet({ title: `${b.icon} ${b.name}`, text: `${b.desc}${S.badges[b.id] ? ` · obtenu le ${fmtDay(S.badges[b.id], { day: 'numeric', month: 'long' })}` : ''}` }) }, h('span', { class: 'badge-icon' }, b.icon), h('small', null, b.name))))),
@@ -1110,6 +1130,7 @@ async function syncFromCloud() {
 
 function start() {
   updateStreak();
+  repairLevels();
   checkChapter();
   checkBadges();
   render();

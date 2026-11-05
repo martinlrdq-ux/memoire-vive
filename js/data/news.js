@@ -3,6 +3,17 @@
 // items : [icône, titre, texte] ; tab et cta : l'onglet à ouvrir et le libellé du bouton (facultatifs).
 export const NEWS = [
   {
+    id: '2026-11-05-niveaux',
+    title: 'Des niveaux plus clairs',
+    items: [
+      ['🏛️', 'Tes palais remplis comptent', 'Remplir un palais depuis « Mes palais » ne faisait jamais avancer ton niveau : 10 mots, alors que le niveau en demandait 5. C’est réparé, et tes rappels déjà réussis à 80 % sont rattrapés.'],
+      ['📈', 'Le 0/2 s’explique', 'Dans Progrès, chaque technique montre tes dernières parties et le score de leur rappel du lendemain. À 80 % ou plus, tu marques un point.'],
+      ['🎲', 'Jeux va à l’essentiel', 'Les cartes indiquent ton niveau et la taille de la partie. Le compteur est sur Progrès.'],
+    ],
+    tab: 'progres',
+    cta: 'Voir mes niveaux',
+  },
+  {
     id: '2026-11-02-indices',
     title: 'Un indice pour chaque liste',
     items: [
